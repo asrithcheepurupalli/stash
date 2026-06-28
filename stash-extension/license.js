@@ -14,8 +14,10 @@
  * slug also works). Until this is set, the dashboard keeps the dev toggle instead.
  */
 (function () {
-  // Gumroad product permalink (the slug after /l/ in the product URL).
-  const PRODUCT_ID = 'stashpro';
+  // Gumroad product_id (the hash, NOT the 'stashpro' permalink). Gumroad's verify
+  // endpoint requires this exact value; you can read it from the verify API error
+  // or the product's advanced settings.
+  const PRODUCT_ID = 'lxi__iAiNXv8FmQWuvFhTA==';
   const VERIFY_URL = 'https://api.gumroad.com/v2/licenses/verify';
   const ORIGIN = 'https://api.gumroad.com/*';
 
