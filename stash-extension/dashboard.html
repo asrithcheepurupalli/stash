@@ -32,7 +32,11 @@
             </nav>
             <div class="sidebar-footer">
                 <button id="pro-toggle" class="secondary-btn pro-toggle">Pro: off</button>
-                <button id="export-all" class="secondary-btn">Export All</button>
+                <div class="footer-row">
+                    <button id="import-all" class="secondary-btn">Import</button>
+                    <button id="export-all" class="secondary-btn">Export All</button>
+                </div>
+                <input type="file" id="import-file" accept="application/json,.json" hidden>
             </div>
         </aside>
 

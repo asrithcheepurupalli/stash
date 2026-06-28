@@ -89,7 +89,7 @@ export default function App() {
     { q: "What is Stash Pro?", a: "Pro adds an on-device AI layer: ask your stash by meaning, summarise any thread, and auto-tag your archive. The model is bundled into the extension, so even the AI runs offline and nothing is uploaded. Capture, keyword search and export stay free forever." },
     { q: "Does it work with Claude and Gemini?", a: "Yes. Stash captures conversations from ChatGPT, Claude and Gemini, plus any web page you want to keep." },
     { q: "Can I export everything?", a: "Yes. Export your entire memory as a file from the dashboard at any time. Your archive belongs to you." },
-    { q: "What happens if I uninstall?", a: "Because the data lives in your browser, removing the extension removes the archive. Export first if you want to keep it." },
+    { q: "What happens if I uninstall?", a: "Because the data lives in your browser, removing the extension removes the archive. Export a backup any time, then import it back into a fresh install to restore everything. Your memory is yours to move." },
   ];
 
   return (

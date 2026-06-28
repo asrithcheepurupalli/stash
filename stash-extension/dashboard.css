@@ -413,3 +413,7 @@ body {
 
 /* interim Pro toggle in footer */
 .pro-toggle.on { background: var(--text-primary); color: var(--bg); border-color: var(--text-primary); }
+
+/* import / export side by side */
+.footer-row { display: flex; gap: 8px; }
+.footer-row .secondary-btn { flex: 1; }
