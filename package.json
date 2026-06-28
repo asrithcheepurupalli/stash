@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
+    "bundle:ai": "esbuild stash-extension/ai.js --bundle --format=esm --platform=browser --outfile=stash-extension/ai.bundle.js --log-level=warning",
     "sync:ext": "node scripts/sync-extension.mjs",
-    "prebuild": "node scripts/sync-extension.mjs",
+    "prebuild": "npm run bundle:ai && npm run sync:ext",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",

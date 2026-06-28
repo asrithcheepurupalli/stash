@@ -7,7 +7,7 @@
  * never pay the ~22MB model cost.
  */
 
-import { pipeline, env } from './vendor/transformers.min.js';
+import { pipeline, env } from '@huggingface/transformers';
 
 // Run fully offline from the packaged files; no network, no remote models.
 env.allowRemoteModels = false;
@@ -22,7 +22,7 @@ let _loading = null;
 
 export async function getExtractor(onProgress) {
   if (_extractor) return _extractor;
-  if (!_loading) _loading = pipeline('feature-extraction', MODEL, { dtype: 'q8', progress_callback: onProgress });
+  if (!_loading) _loading = pipeline('feature-extraction', MODEL, { dtype: 'q8', device: 'wasm', progress_callback: onProgress });
   _extractor = await _loading;
   return _extractor;
 }
