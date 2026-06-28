@@ -1,73 +1,122 @@
 /**
- * Stash Content Script
- * Extracts messages from the current ChatGPT conversation.
+ * Stash content script. Runs on the supported chat sites (ChatGPT, Claude,
+ * Gemini). Extracts the current conversation on request, and injects saved
+ * context back into the composer when resuming a thread.
+ *
+ * Page capture for arbitrary sites does NOT happen here; the popup uses
+ * chrome.scripting on the active tab for that.
  */
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "GET_CHAT") {
-    const chatData = extractChat();
-    sendResponse({ 
-      data: chatData,
-      url: window.location.href,
-      title: document.title.replace(" | ChatGPT", "")
-    });
-  }
-  return true; 
-});
-
-// Check for pending resume context on load
-chrome.storage.local.get(['pending_resume_context'], (result) => {
-  if (result.pending_resume_context) {
-    const context = result.pending_resume_context;
-    
-    // Attempt to inject into prompt
-    const injectContext = () => {
-      const textarea = document.querySelector('#prompt-textarea');
-      if (textarea) {
-          // ChatGPT uses a contenteditable div or textarea depending on version
-          // We try both common selectors
-          const p = textarea.querySelector('p') || textarea;
-          p.innerText = context;
-          
-          // Trigger events so ChatGPT's internal state updates
-          textarea.dispatchEvent(new Event('input', { bubbles: true }));
-          textarea.dispatchEvent(new Event('change', { bubbles: true }));
-        
-        // Clear it so it doesn't paste again on refresh
-        chrome.storage.local.remove(['pending_resume_context']);
-        return true;
-      }
-      return false;
-    };
-
-    // ChatGPT is a heavy SPA, wait for element to exist
-    if (!injectContext()) {
-      const observer = new MutationObserver((mutations, obs) => {
-        if (injectContext()) obs.disconnect();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-      
-      // Stop checking after 10 seconds to avoid memory leaks
-      setTimeout(() => observer.disconnect(), 10000);
-    }
-  }
-});
-
-function extractChat() {
-  const messageElements = document.querySelectorAll('[data-message-author-role]');
-  const messages = [];
-
-  messageElements.forEach((el) => {
-    const role = el.getAttribute('data-message-author-role');
-    const content = el.innerText || el.textContent;
-
-    if (role && content) {
-      messages.push({
-        role: role === 'user' ? 'user' : 'assistant',
-        content: content.trim()
-      });
-    }
-  });
-
-  return messages;
+function siteSource() {
+  const h = location.hostname;
+  if (h.includes('claude')) return 'claude';
+  if (h.includes('gemini')) return 'gemini';
+  return 'chatgpt'; // chatgpt.com / chat.openai.com
 }
+
+function cleanTitle(raw) {
+  return (raw || '')
+    .replace(/\s*[|\\/\-–—]\s*(ChatGPT|Claude|Gemini|Google Gemini).*$/i, '')
+    .trim();
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'GET_CHAT') {
+    const source = siteSource();
+    const data = extractChat(source);
+    let title = cleanTitle(document.title);
+    if (!title || /^(chatgpt|claude|gemini)$/i.test(title)) {
+      title = (data.find((m) => m.role === 'user')?.content || 'Conversation').slice(0, 80);
+    }
+    sendResponse({ data, url: location.href, title, source, type: 'chat' });
+  }
+  return true;
+});
+
+function pushMsg(arr, role, el) {
+  const content = (el.innerText || el.textContent || '').trim();
+  if (content) arr.push({ role, content });
+}
+
+function extractChat(source) {
+  try {
+    if (source === 'claude') return extractClaude();
+    if (source === 'gemini') return extractGemini();
+    return extractChatGPT();
+  } catch (_e) {
+    return [];
+  }
+}
+
+function extractChatGPT() {
+  const out = [];
+  document.querySelectorAll('[data-message-author-role]').forEach((el) => {
+    const role = el.getAttribute('data-message-author-role') === 'user' ? 'user' : 'assistant';
+    pushMsg(out, role, el);
+  });
+  return out;
+}
+
+function extractClaude() {
+  const out = [];
+  // user bubbles + assistant bubbles, in document order
+  document.querySelectorAll('[data-testid="user-message"], .font-claude-message').forEach((el) => {
+    const isUser = el.matches('[data-testid="user-message"]') || !!el.closest('[data-testid="user-message"]');
+    pushMsg(out, isUser ? 'user' : 'assistant', el);
+  });
+  return out;
+}
+
+function extractGemini() {
+  const out = [];
+  document.querySelectorAll('user-query, model-response').forEach((el) => {
+    const isUser = el.tagName.toLowerCase() === 'user-query';
+    pushMsg(out, isUser ? 'user' : 'assistant', el);
+  });
+  return out;
+}
+
+// ----- Resume: inject saved context into the composer on load -----
+chrome.storage.local.get(['pending_resume_context'], (result) => {
+  if (!result.pending_resume_context) return;
+  const context = result.pending_resume_context;
+
+  const selectors = [
+    '#prompt-textarea', // ChatGPT
+    'div[contenteditable="true"][translate="no"]', // Claude
+    'rich-textarea .ql-editor[contenteditable="true"]', // Gemini
+    'div.ProseMirror[contenteditable="true"]',
+    'div[contenteditable="true"]',
+    'textarea',
+  ];
+  const findBox = () => {
+    for (const s of selectors) {
+      const el = document.querySelector(s);
+      if (el) return el;
+    }
+    return null;
+  };
+
+  const inject = () => {
+    const box = findBox();
+    if (!box) return false;
+    if (box.tagName === 'TEXTAREA') {
+      box.value = context;
+    } else {
+      const p = box.querySelector('p') || box;
+      p.innerText = context;
+    }
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    chrome.storage.local.remove(['pending_resume_context']);
+    return true;
+  };
+
+  if (!inject()) {
+    const obs = new MutationObserver((m, o) => {
+      if (inject()) o.disconnect();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => obs.disconnect(), 10000);
+  }
+});

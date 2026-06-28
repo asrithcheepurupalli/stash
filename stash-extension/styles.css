@@ -62,7 +62,7 @@ button {
 #save-btn:hover { opacity: 0.9; }
 #save-btn:active { transform: scale(0.985); }
 
-.actions-row { margin-top: 10px; width: 100%; }
+.actions-row { margin-top: 10px; width: 100%; display: flex; flex-direction: column; gap: 8px; }
 
 .secondary-btn {
   width: 100%;

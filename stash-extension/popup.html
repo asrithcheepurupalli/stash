@@ -15,16 +15,17 @@
 
     <main>
       <div id="main-view">
-        <button id="save-btn">Save to Stash</button>
-        <div id="status-message" class="hidden">Saved successfully</div>
-        
+        <button id="save-btn">Save conversation</button>
+        <div id="status-message" class="hidden">Saved</div>
+
         <div class="actions-row">
+            <button id="save-page-btn" class="secondary-btn hidden">Save this page</button>
             <button id="open-dashboard" class="secondary-btn">Open Dashboard</button>
         </div>
 
         <div id="search-container" class="hidden">
           <div class="divider"></div>
-          <input type="text" id="search-input" placeholder="Search saved chats..." autoComplete="off">
+          <input type="text" id="search-input" placeholder="Search your stash..." autoComplete="off">
           <div id="stashs-list"></div>
         </div>
       </div>

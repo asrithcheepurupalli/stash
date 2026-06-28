@@ -63,7 +63,7 @@ export default function App() {
   };
 
   const FEATURES = [
-    { icon: <MessagesSquare size={20} />, title: "Catch every conversation", desc: "Save a whole ChatGPT thread to your archive with one click. The answer you found at midnight is still there next week." },
+    { icon: <MessagesSquare size={20} />, title: "Catch every conversation", desc: "Save a whole thread from ChatGPT, Claude or Gemini to your archive with one click. The answer you found at midnight is still there next week." },
     { icon: <FileText size={20} />, title: "Keep the pages too", desc: "Clip the articles, docs and references you actually read, alongside your chats, in one place built from your own attention." },
     { icon: <Search size={20} />, title: "One searchable memory", desc: "A single timeline of everything you have asked and read. Stop re-asking the same question; find the answer you already have." },
     { icon: <RotateCcw size={20} />, title: "Resume any thread", desc: "Do not just read an old chat, relaunch it into a fresh session with its context already in place. Pick up exactly where you left off." },
@@ -80,7 +80,7 @@ export default function App() {
 
   const FAQ = [
     { q: "Where is my data stored?", a: "Only on your device, in your browser's local storage. Stash has no servers and no account, so there is nowhere else for it to go." },
-    { q: "Does it work with Claude and Gemini?", a: "Today it captures ChatGPT threads and web pages. Claude and Gemini capture are on the roadmap." },
+    { q: "Does it work with Claude and Gemini?", a: "Yes. Stash captures conversations from ChatGPT, Claude and Gemini, plus any web page you want to keep." },
     { q: "Can I export everything?", a: "Yes. Export your entire memory as a file from the dashboard at any time. Your archive belongs to you." },
     { q: "What happens if I uninstall?", a: "Because the data lives in your browser, removing the extension removes the archive. Export first if you want to keep it." },
   ];

@@ -5,11 +5,15 @@
   "description": "Save your AI chats and the pages you read to a private archive that lives only on your device.",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "https://chatgpt.com/*",
-    "https://chat.openai.com/*"
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -20,7 +24,9 @@
     {
       "matches": [
         "https://chatgpt.com/*",
-        "https://chat.openai.com/*"
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
       ],
       "js": ["content.js"]
     }

@@ -25,6 +25,26 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentActiveStash = null;
     let selectedTag = null;
 
+    const SOURCE_LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', web: 'Web' };
+    const RESUME_URLS = { chatgpt: 'https://chatgpt.com/', claude: 'https://claude.ai/new', gemini: 'https://gemini.google.com/app' };
+    const isPage = (item) => (item.type || 'chat') === 'page';
+    const sourceLabel = (item) => SOURCE_LABELS[item.source] || 'Chat';
+    function domainOf(item) { try { return new URL(item.url).hostname.replace(/^www\./, ''); } catch (_e) { return ''; } }
+    function metaFor(item) {
+        const date = new Date(item.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        if (isPage(item)) return `${date} • ${domainOf(item) || 'Web'}`;
+        return `${date} • ${sourceLabel(item)} • ${item.data.length} msg`;
+    }
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+    function roleLabel(role) {
+        if (role === 'page') return 'Saved page';
+        if (role === 'user') return 'You';
+        if (role === 'assistant') return 'Assistant';
+        return role;
+    }
+
     // Load data
     function loadData() {
         chrome.storage.local.get({ stashs: [] }, (result) => {
@@ -107,15 +127,14 @@ document.addEventListener('DOMContentLoaded', () => {
             groupEl.innerHTML = `<div class="timeline-label">${groupName}</div>`;
 
             grouped[groupName].forEach((item) => {
-                const displayTitle = item.title || item.data[0]?.content || "Untitled Chat";
+                const displayTitle = item.title || item.data[0]?.content || "Untitled";
                 const title = displayTitle.substring(0, 60) + (displayTitle.length > 60 ? "..." : "");
-                const date = new Date(item.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
                 const navItem = document.createElement('div');
                 navItem.className = `nav-item ${currentActiveStash?.timestamp === item.timestamp ? 'active' : ''}`;
                 navItem.innerHTML = `
                     <div class="nav-item-title">${title}</div>
-                    <div class="nav-item-meta">${date} • ${item.data.length} messages</div>
+                    <div class="nav-item-meta">${metaFor(item)}</div>
                 `;
                 
                 navItem.addEventListener('click', () => {
@@ -136,10 +155,14 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyState.classList.add('hidden');
         chatView.classList.remove('hidden');
         
-        const displayTitle = stash.title || stash.data[0]?.content || "Untitled Chat";
+        const displayTitle = stash.title || stash.data[0]?.content || "Untitled";
         activeChatTitle.textContent = displayTitle.substring(0, 100) + (displayTitle.length > 100 ? "..." : "");
-        activeChatDate.textContent = new Date(stash.timestamp).toLocaleString();
-        
+        const when = new Date(stash.timestamp).toLocaleString();
+        activeChatDate.textContent = isPage(stash)
+            ? `${sourceLabel(stash)} • ${domainOf(stash)} • ${when}`
+            : `${sourceLabel(stash)} • ${when}`;
+        continueBtn.textContent = isPage(stash) ? 'Open original' : 'Resume (New Chat)';
+
         renderTags(stash);
 
         // Handle Summary
@@ -161,8 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
             block.className = `message-block ${isHighlighted ? 'highlighted' : ''}`;
             block.innerHTML = `
                 <div class="highlight-btn" title="Toggle Insight">★</div>
-                <div class="message-label">${msg.role}</div>
-                <div class="message-text ${msg.role === 'assistant' ? 'assistant-text' : ''}">${msg.content}</div>
+                <div class="message-label">${roleLabel(msg.role)}</div>
+                <div class="message-text ${msg.role === 'assistant' ? 'assistant-text' : ''}">${escapeHtml(msg.content)}</div>
             `;
 
             block.querySelector('.highlight-btn').onclick = () => toggleHighlight(stash, idx);
@@ -222,15 +245,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Continue in ChatGPT (Resume logic)
     continueBtn.addEventListener('click', () => {
         if (!currentActiveStash) return;
-        
-        const context = "CONTEXT FROM PREVIOUS CONVERSATION:\n" + 
-                        convertToMarkdown(currentActiveStash) + 
+
+        // A saved page just reopens at its source.
+        if (isPage(currentActiveStash)) {
+            if (currentActiveStash.url) window.open(currentActiveStash.url, '_blank');
+            return;
+        }
+
+        const context = "CONTEXT FROM PREVIOUS CONVERSATION:\n" +
+                        convertToMarkdown(currentActiveStash) +
                         "\n\n--- END OF CONTEXT ---\n" +
                         "Please resume this conversation based on the history above.";
-        
-        // Save to storage so content.js can pick it up
+
+        // Resume into the same assistant it came from; content.js injects it on load.
+        const dest = RESUME_URLS[currentActiveStash.source] || 'https://chatgpt.com/';
         chrome.storage.local.set({ pending_resume_context: context }, () => {
-            window.open('https://chatgpt.com/', '_blank');
+            window.open(dest, '_blank');
         });
     });
 
