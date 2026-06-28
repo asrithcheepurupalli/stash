@@ -13,9 +13,9 @@ import JSZip from "jszip";
 
 // The made. mark: italic Fraunces with an upright brand-red period. Every
 // sub-brand reuses the exact pattern. The dot is the logo.
-function Wordmark({ name }: { name: string }) {
+function Wordmark({ name, className = "" }: { name: string; className?: string }) {
   return (
-    <span className="wordmark">{name}<span className="dot">.</span></span>
+    <span className={`wordmark ${className}`}>{name}<span className="dot">.</span></span>
   );
 }
 
@@ -38,11 +38,21 @@ function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; 
 // "Launching soon" chip so nothing dead-ends.
 const GUMROAD_URL = 'https://madebyac.gumroad.com/l/stashpro';
 
+// Chrome Web Store listing. Empty while the extension is in review; the moment
+// this has a value, every install button points to the store (one-click add)
+// instead of the manual zip download. Flip this single line when it goes live.
+const CHROME_STORE_URL = '';
+
 export default function App() {
   const [showGuide, setShowGuide] = useState(false);
   const [isBundling, setIsBundling] = useState(false);
 
   const handleInstall = useCallback(async () => {
+    // Once the listing is live, the buttons just open the store.
+    if (CHROME_STORE_URL) {
+      window.open(CHROME_STORE_URL, "_blank", "noopener,noreferrer");
+      return;
+    }
     setIsBundling(true);
     try {
       const zip = new JSZip();
@@ -80,6 +90,8 @@ export default function App() {
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const installLabel = CHROME_STORE_URL ? "Add to Chrome" : "Download Stash";
 
   const FEATURES = [
     { icon: <MessagesSquare size={20} />, title: "Catch every conversation", desc: "Save a whole thread from ChatGPT, Claude or Gemini to your archive with one click. The answer you found at midnight is still there next week." },
@@ -133,7 +145,7 @@ export default function App() {
       <header className="px-6 pt-40 md:pt-48 pb-24 max-w-5xl mx-auto text-center">
         <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
           className="text-sm text-muted mb-6">
-          A <Wordmark name="made" /> product · local-first
+          A <Wordmark name="made" className="text-ink-2" /> product · local-first
         </motion.p>
         <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.05 }}
           className="font-serif font-medium text-5xl md:text-7xl leading-[1.04] tracking-tight">
@@ -153,7 +165,7 @@ export default function App() {
             {isBundling ? (
               <><span className="w-4 h-4 border-2 border-paper border-t-transparent rounded-full animate-spin" /> Preparing...</>
             ) : (
-              <><Download size={18} /> Download Stash <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" /></>
+              <><Download size={18} /> {installLabel} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" /></>
             )}
           </button>
           <span className="inline-flex items-center gap-2 text-sm text-muted">
@@ -374,7 +386,7 @@ export default function App() {
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button onClick={handleInstall} disabled={isBundling}
               className="px-8 py-4 bg-paper text-ink rounded-full font-semibold flex items-center gap-3 hover:opacity-90 transition-opacity disabled:opacity-50">
-              <Download size={18} /> Download Stash
+              <Download size={18} /> {installLabel}
             </button>
             <span className="text-sm text-paper/50">Free · Local · No account</span>
           </div>
@@ -388,7 +400,7 @@ export default function App() {
             <div className="text-2xl mb-3"><Wordmark name="stash" /></div>
             <p className="text-sm text-muted leading-relaxed">
               Your AI chats and the pages you read, kept in one searchable memory that
-              lives only on your device. A <Wordmark name="made" /> local-first tool.
+              lives only on your device. A <Wordmark name="made" className="text-ink-2" /> local-first tool.
             </p>
           </div>
           <div className="flex gap-16">
