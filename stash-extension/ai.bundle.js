@@ -33000,6 +33000,7 @@ env2.allowLocalModels = true;
 env2.localModelPath = chrome.runtime.getURL("models/");
 env2.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL("vendor/");
 env2.backends.onnx.wasm.numThreads = 1;
+env2.useBrowserCache = false;
 var MODEL = "Xenova/all-MiniLM-L6-v2";
 var _extractor = null;
 var _loading = null;

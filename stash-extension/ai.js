@@ -15,6 +15,9 @@ env.allowLocalModels = true;
 env.localModelPath = chrome.runtime.getURL('models/');
 env.backends.onnx.wasm.wasmPaths = chrome.runtime.getURL('vendor/');
 env.backends.onnx.wasm.numThreads = 1; // extension pages have no SharedArrayBuffer
+// The browser Cache API rejects chrome-extension:// URLs; the model is bundled
+// so there is nothing to cache anyway. Disabling it removes a noisy warning.
+env.useBrowserCache = false;
 
 const MODEL = 'Xenova/all-MiniLM-L6-v2';
 let _extractor = null;
