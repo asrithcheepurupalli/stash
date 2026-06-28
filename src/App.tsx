@@ -423,7 +423,7 @@ export default function App() {
           </div>
         </div>
         <div className="mt-12 pt-6 border-t border-line flex flex-col md:flex-row justify-between items-center gap-3 text-xs text-muted">
-          <span>Stash is a made. product. Built local-first.</span>
+          <span>Stash is a <Wordmark name="made" className="text-ink-2" /> product. Built local-first.</span>
           <span>No servers. No tracking. Your memory stays yours.</span>
         </div>
       </footer>
