@@ -60,11 +60,13 @@ Stash lets you save your AI chat conversations and the web pages you read into a
 
 ## Permission justifications (paste each into its field)
 
-**storage** and **unlimitedStorage:** Stash saves the user's archived conversations, saved pages, tags, highlights and settings locally on the device. Long conversations and full pages can exceed the default storage quota, so unlimitedStorage lets users keep their complete history.
+**storage:** Stash stores the user's saved AI conversations, saved web pages, tags, highlights and settings locally on the device with chrome.storage.local. This local archive is the core function of the extension: a private memory the user can search and revisit. None of it is sent to a server.
 
-**scripting:** When the user clicks save, Stash reads the content of the current AI chat or web page so it can capture it into the local archive. It also injects the saved context back into the chat composer when the user chooses to resume or insert a memory.
+**unlimitedStorage:** Saved conversations and full web pages can be large, and a user's archive accumulates over time, so it can exceed the default storage quota. unlimitedStorage lets users keep their full history on-device rather than forcing Stash to evict older items. All of this data stays local to the device.
 
-**activeTab:** Stash reads the page the user is on only when the user invokes it (clicks save), never in the background.
+**scripting:** When the user clicks Save, Stash injects a content script into the active AI chat or web page to read its visible text and capture it into the local archive. The same injection places a previously saved memory back into the chat input box when the user chooses to insert or resume one.
+
+**activeTab:** Stash reads the content of the page the user is currently viewing only when the user explicitly clicks Save in the Stash popup, so it can capture that page into the on-device archive. It is never used to read tabs in the background or without a user action.
 
 **offscreen:** Stash Pro runs a small on-device search model inside an offscreen document to power the in-chat "pull from memory" feature without slowing the page. No data leaves the device.
 
@@ -76,12 +78,14 @@ Stash lets you save your AI chat conversations and the web pages you read into a
 
 ## Data usage disclosures (the "Privacy practices" form)
 
-- **What user data do you collect?** Stash stores the user's saved conversations and pages locally on their device. It does not collect this data to a server.
-- **Is any data sold to third parties?** No.
-- **Is any data used or transferred for purposes unrelated to the item's core functionality?** No.
-- **Is any data used or transferred to determine creditworthiness or for lending?** No.
-- **Data transfer note:** The only data that ever leaves the device is the Pro license key, sent to the payment provider (Gumroad) at the moment the user activates Pro, solely to verify the purchase. No saved content is ever transmitted.
-- You can certify compliance with all three required developer program policies (no selling data, no unrelated use, limited use), because Stash keeps everything local.
+NOTE: Chrome counts data handled LOCALLY as "handled" too (no local-only exemption),
+so tick the categories Stash stores even though nothing is transmitted.
+
+- **Remote code?** No, I am not using remote code. (Model + ONNX wasm are bundled in the package and loaded via chrome.runtime.getURL with allowRemoteModels=false.)
+- **What user data do you collect? (checkboxes)** Tick **Website content** (stores page + chat message text) and **Web history** (stores the URL, title and time of each saved item). Leave all others unchecked: no PII, health, financial, authentication, location, or user-activity logging. (Personal communications: leave off — that category targets interpersonal email/DMs; Website content covers the saved chat text.)
+- **Certify all three:** do not sell/transfer to third parties; do not use for unrelated purposes; do not use for creditworthiness/lending. All true.
+- **Data transfer note:** The only data that ever leaves the device is the Pro license key, sent to Gumroad at the moment the user activates Pro, solely to verify the purchase. No saved content is ever transmitted.
+- **Privacy policy URL:** https://stash.made-by-ac.com/privacy.html
 
 ---
 
