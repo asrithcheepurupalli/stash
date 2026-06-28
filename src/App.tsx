@@ -8,7 +8,7 @@ import {
   ArrowRight, Search, Zap, Shield, Lock, Database, RotateCcw,
   Cpu, Download, HelpCircle, FileText, MessagesSquare, Sparkles, Tag,
 } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import JSZip from "jszip";
 
 // The made. mark: italic Fraunces with an upright brand-red period. Every
@@ -16,6 +16,21 @@ import JSZip from "jszip";
 function Wordmark({ name }: { name: string }) {
   return (
     <span className="wordmark">{name}<span className="dot">.</span></span>
+  );
+}
+
+// Scroll-into-view reveal: a quiet fade-and-rise the first time a block enters.
+function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.6, delay, ease: [0.2, 0.8, 0.2, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -147,35 +162,17 @@ export default function App() {
           </span>
         </motion.div>
 
-        {/* archive mockup */}
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3 }}
-          className="mt-20 max-w-2xl mx-auto text-left">
-          <div className="rounded-3xl border border-line bg-card shadow-[0_30px_70px_rgba(11,11,12,0.10)] p-6 md:p-8">
-            <div className="flex items-center justify-between mb-7">
-              <span className="inline-flex gap-1.5">
-                <i className="w-2.5 h-2.5 rounded-full bg-line inline-block" />
-                <i className="w-2.5 h-2.5 rounded-full bg-line inline-block" />
-                <i className="w-2.5 h-2.5 rounded-full bg-line inline-block" />
-              </span>
-              <span className="text-xs text-muted">your stash archive</span>
+        {/* product shot: the real dashboard */}
+        <motion.div initial={{ opacity: 0, y: 36, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.9, delay: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+          className="mt-20 max-w-5xl mx-auto">
+          <div className="rounded-2xl border border-line bg-card shadow-[0_50px_100px_-20px_rgba(11,11,12,0.28)] overflow-hidden">
+            <div className="flex items-center gap-1.5 px-4 py-3 border-b border-line bg-paper-2">
+              <i className="w-3 h-3 rounded-full bg-line inline-block" />
+              <i className="w-3 h-3 rounded-full bg-line inline-block" />
+              <i className="w-3 h-3 rounded-full bg-line inline-block" />
+              <span className="ml-3 text-xs text-muted">Stash · your memory profile</span>
             </div>
-            <div className="space-y-3">
-              {[
-                { icon: <MessagesSquare size={15} />, t: "Pricing strategy for the launch", s: "ChatGPT · today" },
-                { icon: <FileText size={15} />, t: "Local-first software, a field guide", s: "Web page · yesterday" },
-                { icon: <MessagesSquare size={15} />, t: "Debugging the auth redirect loop", s: "ChatGPT · 2 days ago" },
-                { icon: <FileText size={15} />, t: "Notes on on-device models", s: "Web page · last week" },
-              ].map((row, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-xl border border-line bg-paper px-4 py-3">
-                  <span className="w-9 h-9 rounded-lg bg-card border border-line grid place-items-center text-muted">{row.icon}</span>
-                  <span className="flex-1">
-                    <span className="block text-[15px] font-medium leading-tight">{row.t}</span>
-                    <span className="block text-xs text-muted mt-0.5">{row.s}</span>
-                  </span>
-                  <RotateCcw size={15} className="text-muted" />
-                </div>
-              ))}
-            </div>
+            <img src="/shots/dashboard.png" alt="The Stash dashboard: a memory profile with stats, a year-long save heatmap, the topics you keep, and auto-organized collections" loading="lazy" className="w-full block" />
           </div>
         </motion.div>
       </header>
@@ -191,17 +188,43 @@ export default function App() {
         </div>
       </section>
 
+      {/* Showcase: the product, in two shots */}
+      <section className="px-6 py-24 max-w-6xl mx-auto">
+        <Reveal className="max-w-2xl mb-14">
+          <p className="text-sm text-muted mb-3">See it</p>
+          <h2 className="font-serif font-medium text-4xl md:text-5xl tracking-tight leading-tight">
+            Save without leaving the chat.<br />Recall without leaving your <span className="text-red">machine.</span>
+          </h2>
+        </Reveal>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Reveal>
+            <div className="group rounded-2xl border border-line bg-card overflow-hidden shadow-[0_24px_60px_-24px_rgba(11,11,12,0.22)] transition-transform duration-300 hover:-translate-y-1">
+              <img src="/shots/pill.png" alt="The Stash pill on a chat page, with a button to save the conversation and a list of related memories to pull in" loading="lazy" className="w-full block" />
+            </div>
+            <h3 className="text-xl font-semibold mt-7 mb-2">One pill on every chat</h3>
+            <p className="text-[15px] text-ink-2 leading-relaxed">Save the conversation you are in with a single click, then pull any related memory straight into your prompt as context. No popup, no tab to hunt for.</p>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <div className="group rounded-2xl border border-line bg-card overflow-hidden shadow-[0_24px_60px_-24px_rgba(11,11,12,0.22)] transition-transform duration-300 hover:-translate-y-1">
+              <img src="/shots/answer.png" alt="The Stash Ask view answering a question with passages drawn from several saved chats and pages, each citing its source" loading="lazy" className="w-full block" />
+            </div>
+            <h3 className="text-xl font-semibold mt-7 mb-2">Ask across everything</h3>
+            <p className="text-[15px] text-ink-2 leading-relaxed">One question, answered from the best passages across all your saved chats and pages, every line citing the memory it came from. Nothing is generated, nothing is uploaded.</p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* Features */}
       <section id="features" className="px-6 py-24 max-w-6xl mx-auto">
-        <div className="max-w-2xl mb-14">
+        <Reveal className="max-w-2xl mb-14">
           <p className="text-sm text-muted mb-3">What it does</p>
           <h2 className="font-serif font-medium text-4xl md:text-5xl tracking-tight leading-tight">
             A memory built from your own attention.
           </h2>
-        </div>
+        </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {FEATURES.map((f, i) => (
-            <div key={i} className="rounded-2xl border border-line bg-card p-7">
+            <div key={i} className="rounded-2xl border border-line bg-card p-7 transition-transform duration-300 hover:-translate-y-1">
               <span className="inline-flex w-11 h-11 rounded-xl bg-paper-2 border border-line items-center justify-center text-ink mb-5">{f.icon}</span>
               <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
               <p className="text-[15px] text-ink-2 leading-relaxed">{f.desc}</p>
@@ -259,7 +282,7 @@ export default function App() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-12">
             {PRO_FEATURES.map((f, i) => (
-              <div key={i} className="rounded-2xl border border-line bg-card p-7">
+              <div key={i} className="rounded-2xl border border-line bg-card p-7 transition-transform duration-300 hover:-translate-y-1">
                 <span className="inline-flex w-11 h-11 rounded-xl bg-paper-2 border border-line items-center justify-center text-red mb-5">{f.icon}</span>
                 <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
                 <p className="text-[15px] text-ink-2 leading-relaxed">{f.desc}</p>
