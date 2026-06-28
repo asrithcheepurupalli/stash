@@ -6,7 +6,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowRight, Search, Zap, Shield, Lock, Database, RotateCcw,
-  Cpu, Download, HelpCircle, FileText, MessagesSquare,
+  Cpu, Download, HelpCircle, FileText, MessagesSquare, Sparkles, Tag,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import JSZip from "jszip";
@@ -78,8 +78,15 @@ export default function App() {
     { t: "Anyone who lives in AI", d: "If your best thinking now happens in a chat window, this is where it stops disappearing." },
   ];
 
+  const PRO_FEATURES = [
+    { icon: <Sparkles size={20} />, title: "Ask your stash", desc: "Search by meaning, not keywords. Ask a real question and Stash surfaces the chat or page that answers it, even when you never used those exact words." },
+    { icon: <FileText size={20} />, title: "Instant summaries", desc: "Turn a long thread into the few sentences that actually matter, generated on your machine the moment you ask." },
+    { icon: <Tag size={20} />, title: "Tags that write themselves", desc: "Stash reads each item and proposes the tags, so your archive sorts itself instead of waiting on you." },
+  ];
+
   const FAQ = [
     { q: "Where is my data stored?", a: "Only on your device, in your browser's local storage. Stash has no servers and no account, so there is nowhere else for it to go." },
+    { q: "What is Stash Pro?", a: "Pro adds an on-device AI layer: ask your stash by meaning, summarise any thread, and auto-tag your archive. The model is bundled into the extension, so even the AI runs offline and nothing is uploaded. Capture, keyword search and export stay free forever." },
     { q: "Does it work with Claude and Gemini?", a: "Yes. Stash captures conversations from ChatGPT, Claude and Gemini, plus any web page you want to keep." },
     { q: "Can I export everything?", a: "Yes. Export your entire memory as a file from the dashboard at any time. Your archive belongs to you." },
     { q: "What happens if I uninstall?", a: "Because the data lives in your browser, removing the extension removes the archive. Export first if you want to keep it." },
@@ -94,6 +101,7 @@ export default function App() {
         </button>
         <div className="hidden md:flex items-center gap-9 text-sm text-muted">
           <button onClick={() => scrollTo("features")} className="hover:text-ink transition-colors">Features</button>
+          <button onClick={() => scrollTo("pro")} className="hover:text-ink transition-colors">Pro</button>
           <button onClick={() => scrollTo("privacy")} className="hover:text-ink transition-colors">Privacy</button>
           <button onClick={() => scrollTo("how")} className="hover:text-ink transition-colors">How it works</button>
           <button onClick={handleInstall} className="px-5 py-2 bg-ink text-paper rounded-full font-medium hover:opacity-90 transition-opacity">
@@ -227,6 +235,52 @@ export default function App() {
         </div>
       </section>
 
+      {/* Stash Pro: on-device intelligence */}
+      <section id="pro" className="px-6 py-24 max-w-6xl mx-auto">
+        <div className="rounded-[36px] border border-line bg-paper-2 px-6 md:px-12 py-14 md:py-16">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red text-paper text-xs font-semibold tracking-wide mb-5">
+              <Sparkles size={13} /> Stash Pro
+            </span>
+            <h2 className="font-serif font-medium text-4xl md:text-5xl tracking-tight leading-tight">
+              Ask your stash.<br />The answer never <span className="text-red">leaves it.</span>
+            </h2>
+            <p className="text-lg text-ink-2 leading-relaxed mt-6">
+              Pro adds a small AI model bundled right into the extension. Search your whole
+              memory by meaning, summarise any thread, and let your archive tag itself. Like
+              the rest of Stash, it runs entirely on your machine and sends nothing anywhere.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-12">
+            {PRO_FEATURES.map((f, i) => (
+              <div key={i} className="rounded-2xl border border-line bg-card p-7">
+                <span className="inline-flex w-11 h-11 rounded-xl bg-paper-2 border border-line items-center justify-center text-red mb-5">{f.icon}</span>
+                <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
+                <p className="text-[15px] text-ink-2 leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 flex flex-col md:flex-row md:items-center justify-between gap-6 rounded-2xl border border-line bg-card px-7 py-6">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-2">
+              <span className="inline-flex items-center gap-2"><Cpu size={15} className="text-red" /> Model bundled in, runs offline</span>
+              <span className="inline-flex items-center gap-2"><Lock size={15} className="text-red" /> Nothing uploaded, ever</span>
+              <span className="inline-flex items-center gap-2"><Database size={15} className="text-red" /> One-time, no subscription</span>
+            </div>
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-line text-xs text-muted">
+                <span className="w-1.5 h-1.5 rounded-full bg-red inline-block" /> Launching soon
+              </span>
+              <button onClick={handleInstall} className="px-6 py-3 bg-ink text-paper rounded-full font-semibold text-sm inline-flex items-center gap-2 hover:opacity-90 transition-opacity">
+                <Download size={16} /> Get Stash free
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-muted mt-4">Install the free version today. Pro unlocks from inside the app when it lands, with a one-time price and no account.</p>
+        </div>
+      </section>
+
       {/* Who it is for */}
       <section className="px-6 py-24 max-w-6xl mx-auto text-center">
         <p className="text-sm text-muted mb-3">Who it is for</p>
@@ -309,6 +363,7 @@ export default function App() {
               <h5 className="text-xs uppercase tracking-widest text-muted mb-4">Product</h5>
               <ul className="space-y-3 text-sm text-ink-2">
                 <li><button onClick={() => scrollTo("features")} className="hover:text-ink">Features</button></li>
+                <li><button onClick={() => scrollTo("pro")} className="hover:text-ink">Pro</button></li>
                 <li><button onClick={() => scrollTo("privacy")} className="hover:text-ink">Privacy</button></li>
                 <li><button onClick={() => scrollTo("how")} className="hover:text-ink">How it works</button></li>
               </ul>
