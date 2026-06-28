@@ -20,28 +20,31 @@ Save your AI chats and the pages you read into a private, searchable memory that
 
 ## Detailed description (paste into "Description")
 
+> PLAIN TEXT ONLY. The store does NOT render Markdown, so no `**bold**` or `###`.
+> Paste exactly the block below (caps headers + bullet dots create the hierarchy).
+
 Your best thinking now happens inside AI chat windows, and then it scrolls away. Stash keeps all of it.
 
 Stash saves your AI conversations and the web pages you read into one private memory that lives only on your machine. Save it once, find it anytime. No servers, no account, and no one else can reach it.
 
-**Save without leaving the chat.** A small pill sits on your AI chats. One click saves the conversation you are in, and your saved memories are always a click away to pull back into your prompt as context. The pages you read save the same way.
+Save without leaving the chat. A small pill sits on your AI chats. One click saves the conversation you are in, and your saved memories are always a click away to pull back into your prompt as context. The pages you read save the same way.
 
-**Find anything, your way.** Search your whole archive by keyword, or open any saved chat and pick up exactly where you left off in a fresh thread.
+Find anything, your way. Search your whole archive by keyword, or open any saved chat and pick up exactly where you left off in a fresh thread.
 
-**A memory profile.** A quiet home screen shows what you keep, a full year of your saving habits, and a way straight back into anything.
+A memory profile. A quiet home screen shows what you keep, a full year of your saving habits, and a way straight back into anything.
 
-### Stash Pro adds on-device intelligence
+STASH PRO ADDS ON-DEVICE INTELLIGENCE
 
 Pro bundles a small AI model right into the extension, so your memory works for you. Like the rest of Stash, it runs entirely on your machine and sends nothing anywhere.
 
-- **Ask across everything.** Ask a question and get an answer assembled from the best passages across all your saved chats and pages, with every line citing the memory it came from.
-- **Memory inside your chats.** The pill surfaces your related past conversations and drops the right one into your prompt as context.
-- **It organizes itself.** Your memory sorts into named collections by topic.
-- **Summaries and tags, written for you.** Summarize any thread in a sentence or two, and let your archive tag itself.
+• Ask across everything. Ask a question and get an answer assembled from the best passages across all your saved chats and pages, with every line citing the memory it came from.
+• Memory inside your chats. The pill surfaces your related past conversations and drops the right one into your prompt as context.
+• It organizes itself. Your memory sorts into named collections by topic.
+• Summaries and tags, written for you. Summarize any thread in a sentence or two, and let your archive tag itself.
 
 Pro is a one-time purchase. No subscription, nothing to cancel.
 
-### Privacy is the whole point
+PRIVACY IS THE WHOLE POINT
 
 A memory cannot leak if it never leaves. Stash makes no network calls of its own. Everything you save is stored locally with your browser's storage. There is no cloud, no account, no tracking, and nothing for us to sell, because we never receive it. The single time Stash touches the internet is the optional moment you activate a Pro license, and it only asks for that permission then.
 
