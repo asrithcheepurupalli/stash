@@ -51,14 +51,24 @@ async function askOffscreen(payload, tries = 12) {
   throw new Error(lastErr);
 }
 
+// Offscreen documents can only use chrome.runtime (no chrome.storage), so the
+// worker owns storage: it reads stashs + the cached index here and passes them
+// to the offscreen, then persists any embeddings the offscreen newly computed.
+function getStash() {
+  return new Promise((resolve) => chrome.storage.local.get({ stashs: [], embeddings: {} }, resolve));
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.target !== 'background') return; // not ours
   if (msg.type === 'SUGGEST') {
     (async () => {
       try {
+        const { stashs, embeddings } = await getStash();
+        if (!stashs.length) { sendResponse({ results: [] }); return; }
         await ensureOffscreen();
-        const res = await askOffscreen({ target: 'offscreen', type: 'SUGGEST', query: msg.query });
-        sendResponse(res || { results: [] });
+        const res = await askOffscreen({ target: 'offscreen', type: 'SUGGEST', query: msg.query, stashs, embeddings });
+        if (res && res.embeddings) chrome.storage.local.set({ embeddings: res.embeddings }); // persist newly built index
+        sendResponse(res ? { results: res.results || [] } : { results: [] });
       } catch (e) {
         sendResponse({ error: String(e && e.message || e) });
       }

@@ -3,6 +3,10 @@
  * memory panel using the bundled embedding model. Reuses the same index
  * (storage key `embeddings`) the dashboard builds, so it is usually warm.
  *
+ * Offscreen documents only get chrome.runtime (NO chrome.storage), so the
+ * background worker reads storage and passes { stashs, embeddings } in the
+ * message; we return any newly computed embeddings for the worker to persist.
+ *
  * The model bundle (ai.bundle.js, ~1.2MB) is LOADED LAZILY on first use, NOT as
  * a static top-level import: a static import would delay registering the message
  * listener below until the whole bundle parsed, and the first request would hit
@@ -16,23 +20,16 @@ function getAI() {
   return aiMod;
 }
 
-function getData() {
-  return new Promise((resolve) => chrome.storage.local.get({ stashs: [], embeddings: {} }, resolve));
-}
-
 function snippetOf(item) {
   if (item.summary) return String(item.summary).slice(0, 280);
   const body = (item.data || []).map((m) => m.content).join(' ').replace(/\s+/g, ' ').trim();
   return body.slice(0, 280);
 }
 
-async function suggest(query) {
-  if (!query || !query.trim()) return { results: [] };
-  const { stashs, embeddings } = await getData();
-  if (!stashs.length) return { results: [] };
+async function suggest({ query, stashs, embeddings }) {
+  if (!query || !query.trim() || !stashs || !stashs.length) return { results: [] };
   const { buildIndex, search } = await getAI();
-  const { index, added } = await buildIndex(stashs, embeddings);
-  if (added) chrome.storage.local.set({ embeddings: index });
+  const { index, added } = await buildIndex(stashs, embeddings || {});
   const hits = await search(query, stashs, index, 5);
   return {
     results: hits.map((h) => ({
@@ -44,6 +41,7 @@ async function suggest(query) {
       snippet: snippetOf(h.item),
       score: h.score,
     })),
+    embeddings: added ? index : undefined, // hand the new index back to the worker to save
   };
 }
 
@@ -52,7 +50,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.target !== 'offscreen') return;
   if (msg.type === 'PING') { sendResponse({ ok: true }); return true; }
   if (msg.type === 'SUGGEST') {
-    suggest(msg.query).then(sendResponse).catch((e) => sendResponse({ error: String(e && e.message || e) }));
+    suggest(msg).then(sendResponse).catch((e) => sendResponse({ error: String(e && e.message || e) }));
     return true; // async
   }
 });
