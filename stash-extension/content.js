@@ -221,11 +221,24 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
     document.addEventListener('click', (e) => {
       if (panel.classList.contains('open') && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close();
     });
+    // Coexist with the Airlock pill (a sibling made. extension at bottom:22 right:22):
+    // stack Stash above it when present. Airlock may load late, so re-check a while.
+    adjustForAirlock();
+    let checks = 0;
+    const t = setInterval(() => { adjustForAirlock(); if (++checks > 12) clearInterval(t); }, 1500);
+  }
+
+  function adjustForAirlock() {
+    if (!btn || !panel) return;
+    const raised = !!document.getElementById('airlock-pill');
+    btn.style.bottom = raised ? '78px' : '20px';
+    panel.style.bottom = raised ? '128px' : '70px';
   }
 
   function close() { panel.classList.remove('open'); }
   function toggle() {
     if (panel.classList.contains('open')) { close(); return; }
+    adjustForAirlock();
     chrome.storage.local.get({ pro_active: false }, (r) => {
       panel.classList.add('open');
       if (!r.pro_active) {
@@ -244,6 +257,8 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
     if (!query || !query.trim()) { listEl.innerHTML = '<div class="stash-mem-msg">Start your prompt, or type what you are working on, and your related memories show up here.</div>'; return; }
     listEl.innerHTML = '<div class="stash-mem-msg">Searching your memory...</div>';
     chrome.runtime.sendMessage({ target: 'background', type: 'SUGGEST', query }, (res) => {
+      if (chrome.runtime.lastError) console.warn('[stash] suggest channel error:', chrome.runtime.lastError.message);
+      if (res && res.error) console.warn('[stash] suggest error:', res.error);
       if (chrome.runtime.lastError || !res || res.error) { listEl.innerHTML = '<div class="stash-mem-msg">Could not reach your memory. The model may still be loading, try again in a moment.</div>'; return; }
       renderResults(res.results || []);
     });

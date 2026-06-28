@@ -33,16 +33,34 @@ async function ensureOffscreen() {
   }
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// The offscreen page registers its listener after its module loads, so the very
+// first message can race it ("no receiving end"). Retry until it answers.
+async function askOffscreen(payload, tries = 12) {
+  let lastErr = 'offscreen not responding';
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await chrome.runtime.sendMessage(payload);
+      if (res !== undefined) return res;
+    } catch (e) {
+      lastErr = String(e && e.message || e);
+    }
+    await sleep(250);
+  }
+  throw new Error(lastErr);
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.target !== 'background') return; // not ours
   if (msg.type === 'SUGGEST') {
     (async () => {
       try {
         await ensureOffscreen();
-        const res = await chrome.runtime.sendMessage({ target: 'offscreen', type: 'SUGGEST', query: msg.query });
+        const res = await askOffscreen({ target: 'offscreen', type: 'SUGGEST', query: msg.query });
         sendResponse(res || { results: [] });
       } catch (e) {
-        sendResponse({ error: String(e) });
+        sendResponse({ error: String(e && e.message || e) });
       }
     })();
     return true; // async response
