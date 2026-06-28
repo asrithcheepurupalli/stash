@@ -159,35 +159,77 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+  // The Stash mark: a small stack of saved cards with the brand-red marker.
+  // Mirrors the product icon, so the pill reads as "memory", not a generic dot.
+  const markSvg = (s) => `<svg class="stash-mark" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect class="s-back" x="8" y="3.5" width="12" height="15" rx="3" fill="#0b0b0c" opacity="0.3"/>
+      <rect class="s-front" x="4" y="6" width="13" height="15" rx="3" fill="#0b0b0c"/>
+      <circle cx="8" cy="11.5" r="2" fill="#c8102e"/></svg>`;
+
+  function setCount(n) {
+    if (!btn) return;
+    const c = btn.querySelector('.s-count');
+    if (c) c.textContent = n > 999 ? '999+' : String(n);
+    btn.classList.toggle('s-empty', !n);
+  }
+  function refreshCount() { chrome.storage.local.get({ stashs: [] }, (r) => setCount((r.stashs || []).length)); }
+
   function injectStyles() {
     if (document.getElementById('stash-mem-style')) return;
     const css = `
-      #stash-mem-btn{position:fixed;right:20px;bottom:20px;z-index:2147483600;display:inline-flex;align-items:center;gap:7px;
-        background:#0b0b0c;color:#f6f3ee;border:none;border-radius:999px;padding:9px 14px;font:600 13px/1 ui-sans-serif,system-ui,-apple-system,sans-serif;
-        cursor:pointer;box-shadow:0 6px 22px rgba(11,11,12,.28);transition:transform .12s ease,opacity .12s ease}
-      #stash-mem-btn:hover{transform:translateY(-1px)}
-      #stash-mem-btn .dot{width:6px;height:6px;border-radius:50%;background:#c8102e;display:inline-block}
-      #stash-mem-panel{position:fixed;right:20px;bottom:70px;z-index:2147483600;width:360px;max-width:calc(100vw - 40px);
-        background:#f6f3ee;color:#0b0b0c;border:1px solid #ddd5c8;border-radius:18px;box-shadow:0 24px 60px rgba(11,11,12,.26);
-        font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden;display:none}
-      #stash-mem-panel.open{display:block}
-      .stash-mem-head{padding:14px 16px 10px;border-bottom:1px solid #ddd5c8}
-      .stash-mem-title{font:600 14px/1.2 inherit;display:flex;align-items:center;gap:7px;margin:0}
-      .stash-mem-title .dot{width:6px;height:6px;border-radius:50%;background:#c8102e;display:inline-block}
+      /* Stash = LIGHT pill (Airlock is the dark one): same family, clearly distinct. */
+      #stash-mem-btn{position:fixed;right:20px;bottom:20px;z-index:2147483600;display:inline-flex;align-items:center;gap:8px;
+        background:#f6f3ee;color:#0b0b0c;border:1px solid #e4decf;border-radius:999px;padding:8px 13px 8px 11px;
+        font:600 13px/1 ui-sans-serif,system-ui,-apple-system,sans-serif;cursor:pointer;
+        box-shadow:0 4px 16px rgba(11,11,12,.14),0 1px 3px rgba(11,11,12,.10);
+        transition:transform .16s cubic-bezier(.2,.7,.2,1),box-shadow .16s ease,border-color .16s ease;
+        animation:stash-pill-in .42s cubic-bezier(.2,.8,.2,1) both}
+      #stash-mem-btn:hover{transform:translateY(-2px);border-color:#d9d1c0;box-shadow:0 12px 28px rgba(11,11,12,.20),0 2px 6px rgba(11,11,12,.12)}
+      #stash-mem-btn:active{transform:translateY(0) scale(.97)}
+      #stash-mem-btn .stash-mark{display:block;flex:0 0 auto}
+      #stash-mem-btn .stash-mark .s-front{transition:transform .2s cubic-bezier(.2,.7,.2,1)}
+      #stash-mem-btn .stash-mark .s-back{transition:transform .2s cubic-bezier(.2,.7,.2,1)}
+      #stash-mem-btn:hover .stash-mark .s-front{transform:translateY(-1.6px)}
+      #stash-mem-btn:hover .stash-mark .s-back{transform:translate(1.2px,1px)}
+      #stash-mem-btn .s-label{letter-spacing:-.01em}
+      #stash-mem-btn .s-div{width:1px;height:13px;background:#ddd5c8}
+      #stash-mem-btn .s-count{font-size:12px;color:#7c7770;font-weight:700;min-width:7px;text-align:center;font-variant-numeric:tabular-nums}
+      #stash-mem-btn.s-empty .s-div,#stash-mem-btn.s-empty .s-count{display:none}
+      @keyframes stash-pill-in{from{opacity:0;transform:translateY(12px) scale(.9)}to{opacity:1;transform:none}}
+
+      #stash-mem-panel{position:fixed;right:20px;bottom:70px;z-index:2147483600;width:362px;max-width:calc(100vw - 40px);
+        background:#f6f3ee;color:#0b0b0c;border:1px solid #ddd5c8;border-radius:18px;box-shadow:0 24px 64px rgba(11,11,12,.28);
+        font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden;display:none;transform-origin:bottom right}
+      #stash-mem-panel.open{display:block;animation:stash-panel-in .26s cubic-bezier(.2,.8,.2,1)}
+      @keyframes stash-panel-in{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+      .stash-mem-head{padding:14px 16px 11px;border-bottom:1px solid #ddd5c8;display:flex;align-items:flex-start;gap:9px}
+      .stash-mem-head .stash-mark{margin-top:1px;flex:0 0 auto}
+      .stash-mem-title{font:600 14px/1.2 inherit;margin:0}
       .stash-mem-sub{font-size:11px;color:#7c7770;margin-top:3px}
-      .stash-mem-search{box-sizing:border-box;margin:10px 16px 0;width:calc(100% - 32px);padding:9px 12px;border:1px solid #ddd5c8;border-radius:10px;
-        background:#fbfaf6;font:13px ui-sans-serif,system-ui,sans-serif;color:#0b0b0c;outline:none}
-      .stash-mem-list{max-height:340px;overflow-y:auto;padding:8px}
+      .stash-mem-search{box-sizing:border-box;margin:11px 16px 0;width:calc(100% - 32px);padding:9px 12px;border:1px solid #ddd5c8;border-radius:10px;
+        background:#fbfaf6;font:13px ui-sans-serif,system-ui,sans-serif;color:#0b0b0c;outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+      .stash-mem-search:focus{border-color:#0b0b0c;box-shadow:0 0 0 3px rgba(11,11,12,.05)}
+      .stash-mem-list{max-height:344px;overflow-y:auto;padding:8px}
       .stash-mem-item{width:100%;text-align:left;background:#fbfaf6;border:1px solid #ddd5c8;border-radius:12px;padding:11px 12px;margin:6px 0;cursor:pointer;
-        transition:border-color .12s ease;display:block;font-family:inherit}
-      .stash-mem-item:hover{border-color:#0b0b0c}
+        transition:border-color .14s ease,transform .1s ease,box-shadow .14s ease;display:block;font-family:inherit;
+        animation:stash-item-in .32s cubic-bezier(.2,.8,.2,1) both}
+      .stash-mem-item:hover{border-color:#0b0b0c;transform:translateY(-1px);box-shadow:0 6px 16px rgba(11,11,12,.08)}
+      .stash-mem-item:active{transform:translateY(0) scale(.99)}
+      @keyframes stash-item-in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
       .stash-mem-it-top{display:flex;align-items:center;gap:7px;margin-bottom:4px}
       .stash-mem-it-dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
       .stash-mem-it-title{font:600 13px/1.25 inherit;color:#0b0b0c;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .stash-mem-it-pct{font-size:11px;color:#a8a299}
-      .stash-mem-it-snip{font-size:12px;line-height:1.4;color:#5c574f;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-      .stash-mem-msg{padding:22px 18px;text-align:center;font-size:13px;color:#7c7770}
-      .stash-mem-foot{padding:8px 16px 12px;font-size:11px;color:#a8a299;border-top:1px solid #ddd5c8}
+      .stash-mem-it-pct{font-size:10px;font-weight:700;color:#c8102e;background:rgba(200,16,46,.10);padding:2px 6px;border-radius:999px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+      .stash-mem-it-snip{font-size:12px;line-height:1.45;color:#5c574f;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      .stash-mem-it-ins{margin-top:8px;font-size:11px;font-weight:600;color:#7c7770;display:flex;align-items:center;gap:5px;opacity:0;transition:opacity .14s ease}
+      .stash-mem-item:hover .stash-mem-it-ins{opacity:1}
+      .stash-mem-msg{padding:22px 18px;text-align:center;font-size:13px;color:#7c7770;line-height:1.5}
+      .stash-dots{display:inline-flex;gap:4px;vertical-align:middle;margin-right:7px}
+      .stash-dots i{width:5px;height:5px;border-radius:50%;background:#c8102e;display:inline-block;animation:stash-bounce 1s infinite ease-in-out}
+      .stash-dots i:nth-child(2){animation-delay:.16s}.stash-dots i:nth-child(3){animation-delay:.32s}
+      @keyframes stash-bounce{0%,80%,100%{transform:scale(.5);opacity:.4}40%{transform:scale(1);opacity:1}}
+      .stash-mem-foot{padding:9px 16px 12px;font-size:11px;color:#a8a299;border-top:1px solid #ddd5c8}
+      @media (prefers-reduced-motion: reduce){#stash-mem-btn,#stash-mem-panel.open,.stash-mem-item{animation:none}}
     `;
     const st = document.createElement('style');
     st.id = 'stash-mem-style'; st.textContent = css;
@@ -200,15 +242,18 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
     injectStyles();
     btn = document.createElement('button');
     btn.id = 'stash-mem-btn';
-    btn.innerHTML = '<span class="dot"></span> Stash';
+    btn.innerHTML = `${markSvg(18)}<span class="s-label">Stash</span><span class="s-div"></span><span class="s-count">0</span>`;
     btn.addEventListener('click', toggle);
 
     panel = document.createElement('div');
     panel.id = 'stash-mem-panel';
     panel.innerHTML = `
       <div class="stash-mem-head">
-        <div class="stash-mem-title"><span class="dot"></span> Pull from your memory</div>
-        <div class="stash-mem-sub">Relevant saved chats and pages, on your device.</div>
+        ${markSvg(22)}
+        <div>
+          <div class="stash-mem-title">Pull from your memory</div>
+          <div class="stash-mem-sub">Relevant saved chats and pages, on your device.</div>
+        </div>
       </div>
       <input class="stash-mem-search" type="text" placeholder="What is this about?">
       <div class="stash-mem-list"></div>
@@ -218,6 +263,7 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
     searchEl.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(() => run(searchEl.value), 350); });
     document.body.appendChild(btn);
     document.body.appendChild(panel);
+    refreshCount();
     document.addEventListener('click', (e) => {
       if (panel.classList.contains('open') && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close();
     });
@@ -239,6 +285,7 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
   function toggle() {
     if (panel.classList.contains('open')) { close(); return; }
     adjustForAirlock();
+    refreshCount();
     chrome.storage.local.get({ pro_active: false }, (r) => {
       panel.classList.add('open');
       if (!r.pro_active) {
@@ -255,7 +302,7 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
 
   function run(query) {
     if (!query || !query.trim()) { listEl.innerHTML = '<div class="stash-mem-msg">Start your prompt, or type what you are working on, and your related memories show up here.</div>'; return; }
-    listEl.innerHTML = '<div class="stash-mem-msg">Searching your memory...</div>';
+    listEl.innerHTML = '<div class="stash-mem-msg"><span class="stash-dots"><i></i><i></i><i></i></span>Searching your memory</div>';
     chrome.runtime.sendMessage({ target: 'background', type: 'SUGGEST', query }, (res) => {
       if (chrome.runtime.lastError) console.warn('[stash] suggest channel error:', chrome.runtime.lastError.message);
       if (res && res.error) console.warn('[stash] suggest error:', res.error);
@@ -267,17 +314,19 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
   function renderResults(results) {
     if (!results.length) { listEl.innerHTML = '<div class="stash-mem-msg">Nothing relevant saved yet. Keep stashing and this gets useful fast.</div>'; return; }
     listEl.innerHTML = '';
-    results.forEach((r) => {
+    results.forEach((r, i) => {
       const pct = Math.min(99, Math.max(0, Math.round(r.score * 100)));
       const item = document.createElement('button');
       item.className = 'stash-mem-item';
+      item.style.animationDelay = `${i * 45}ms`;
       item.innerHTML = `
         <div class="stash-mem-it-top">
           <span class="stash-mem-it-dot" style="background:${SRC_COLOR[r.source] || '#a8a299'}"></span>
           <span class="stash-mem-it-title">${esc(r.title)}</span>
           <span class="stash-mem-it-pct">${pct}%</span>
         </div>
-        <div class="stash-mem-it-snip">${esc(r.snippet || '')}</div>`;
+        <div class="stash-mem-it-snip">${esc(r.snippet || '')}</div>
+        <div class="stash-mem-it-ins">Insert as context &rarr;</div>`;
       item.addEventListener('click', () => insert(r));
       listEl.appendChild(item);
     });
