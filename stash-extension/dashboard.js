@@ -344,6 +344,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return streak;
     }
 
+    // Count the stat numbers up from zero. A small touch that makes the profile
+    // feel alive each time it opens.
+    function animateCount(el, to) {
+        if (!to || to < 1) { el.textContent = String(to || 0); return; }
+        const dur = 650, start = performance.now();
+        const tick = (now) => {
+            const p = Math.min(1, (now - start) / dur);
+            const eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = String(Math.round(to * eased));
+            if (p < 1) requestAnimationFrame(tick); else el.textContent = String(to);
+        };
+        requestAnimationFrame(tick);
+    }
+
     function showOverview() {
         currentActiveStash = null;
         chatView.classList.add('hidden');
@@ -385,7 +399,8 @@ document.addEventListener('DOMContentLoaded', () => {
             { n: countSince(7), l: 'this week' },
             { n: currentStreak(perDay), l: 'day streak' },
         ];
-        ovStats.innerHTML = stats.map((c) => `<div class="ov-stat"><span class="ov-stat-n">${c.n}</span><span class="ov-stat-l">${c.l}</span></div>`).join('');
+        ovStats.innerHTML = stats.map((c) => `<div class="ov-stat"><span class="ov-stat-n" data-n="${c.n}">0</span><span class="ov-stat-l">${c.l}</span></div>`).join('');
+        ovStats.querySelectorAll('.ov-stat-n').forEach((el) => animateCount(el, +el.dataset.n));
 
         renderHeatmap(perDay);
 
@@ -805,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
         licenseKey.value = '';
         licenseKey.focus();
     }
-    function closeLicense() { licensePanel.classList.add('hidden'); }
+    function closeLicense() { licensePanel.classList.add('hidden'); if (licenseKey) licenseKey.value = ''; if (licenseMsg) licenseMsg.classList.add('hidden'); }
 
     // A warm welcome the moment Pro unlocks. They just backed a small studio, so
     // this reads like a note from us, not a system toast.
