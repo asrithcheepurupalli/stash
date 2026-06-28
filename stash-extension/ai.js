@@ -113,13 +113,44 @@ export async function search(query, items, index, topK = 20) {
   return scored.filter((r) => r.sem >= 0.18 && r.score >= top * 0.55).slice(0, topK);
 }
 
-// ---- extractive summary (TextRank over sentence embeddings) ------------------
+// ---- extractive summary: clean -> TextRank relevance -> MMR selection --------
+// This is the best an EXTRACTIVE summary gets without a heavy generative model:
+// it still stitches your own sentences, but it strips noise, drops filler, and
+// picks lines that are both important AND non-redundant.
+
+// Drop code blocks and unwrap inline code/markdown so they do not pollute the summary.
+function stripNoise(text) {
+  return String(text || '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function splitSentences(text) {
   return String(text || '')
-    .replace(/\s+/g, ' ')
     .split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 25 && s.length < 400);
+    .filter((s) => s.length > 25 && s.length < 320);
+}
+
+// Tidy a sentence for reading: unwrap markdown, drop list/heading prefixes and
+// conversational lead-ins ("Sure,", "Here's", "Basically,"), then recapitalise.
+function cleanSentence(s) {
+  let t = String(s || '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1')
+    .replace(/^#{1,6}\s+/, '').replace(/^\s*[-*]\s+/, '').replace(/^\s*\d+\.\s+/, '')
+    .replace(/^(sure|certainly|of course|absolutely|great question|here(?:'s| is)|let me|i'd be happy|happy to help|no problem|got it|understood|basically|essentially|in short|in summary|to summarize)[,:]?\s+/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (t) t = t.charAt(0).toUpperCase() + t.slice(1);
+  return t;
+}
+
+function isBoilerplate(s) {
+  if (s.length < 25) return true;
+  if (/^(let me know|i hope (this|that) helps|hope (this|that) helps|feel free to|does (that|this) (help|make sense)|is there anything else|happy to help)\b/i.test(s)) return true;
+  return (s.match(/[a-z]{2,}/gi) || []).length < 4; // mostly symbols / urls
 }
 
 async function embedAll(sentences) {
@@ -132,10 +163,9 @@ async function embedAll(sentences) {
   return vecs;
 }
 
-// TextRank-lite: a sentence scores by how similar it is to all the others, so
-// genuinely representative sentences win (better than "closest to the average").
-function rankSentences(sentences, vecs, k) {
-  const n = sentences.length;
+// TextRank-lite relevance, normalised to 0..1.
+function textRankRel(vecs) {
+  const n = vecs.length;
   const score = new Array(n).fill(0);
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
@@ -144,41 +174,59 @@ function rankSentences(sentences, vecs, k) {
       if (sim > 0.2) score[i] += sim;
     }
   }
-  const order = sentences.map((s, i) => i).sort((a, b) => score[b] - score[a]);
+  const max = Math.max(...score, 1e-6);
+  return score.map((s) => s / max);
+}
+
+// Maximal Marginal Relevance: pick important sentences that are NOT redundant
+// with what we already picked, so the summary covers more ground.
+function mmrSelect(vecs, rel, k, lambda = 0.72) {
   const picked = [];
-  for (const i of order) {
-    if (picked.length >= k) break;
-    if (picked.some((p) => cosine(vecs[i], vecs[p]) > 0.85)) continue; // skip near-dupes
-    picked.push(i);
+  const rem = vecs.map((_, i) => i);
+  while (picked.length < k && rem.length) {
+    let bestIdx = -1, bestScore = -Infinity;
+    for (const i of rem) {
+      let maxSim = 0;
+      for (const p of picked) maxSim = Math.max(maxSim, cosine(vecs[i], vecs[p]));
+      const sc = lambda * rel[i] - (1 - lambda) * maxSim;
+      if (sc > bestScore) { bestScore = sc; bestIdx = i; }
+    }
+    picked.push(bestIdx);
+    rem.splice(rem.indexOf(bestIdx), 1);
   }
   return picked.sort((a, b) => a - b); // reading order
 }
 
 export async function summarize(item) {
   const page = (item.type || 'chat') === 'page';
-  // Chats: lead with the user's intent (the question), then the key answer
-  // sentences. Pages: rank the page's own sentences.
   let lead = '';
-  let bodyText;
+  let rawBody;
   if (!page) {
     const firstUser = (item.data || []).find((m) => m.role === 'user');
-    if (firstUser) lead = splitSentences(firstUser.content)[0] || clip(firstUser.content, 160);
-    const answers = (item.data || []).filter((m) => m.role !== 'user').map((m) => m.content).join(' ');
-    bodyText = answers || (item.data || []).map((m) => m.content).join(' ');
+    if (firstUser) lead = cleanSentence(splitSentences(stripNoise(firstUser.content))[0] || clip(firstUser.content, 160));
+    const answers = (item.data || []).filter((m) => m.role !== 'user').map((m) => m.content).join('\n');
+    rawBody = answers || (item.data || []).map((m) => m.content).join('\n');
   } else {
-    bodyText = (item.data || []).map((m) => m.content).join(' ');
+    rawBody = (item.data || []).map((m) => m.content).join('\n');
   }
-  let sentences = splitSentences(bodyText).slice(0, 40);
-  if (sentences.length <= 2) {
-    const fb = clip(bodyText, 360);
-    return lead && !fb.startsWith(lead) ? `${lead} ${fb}`.slice(0, 600) : fb;
+
+  let cands = splitSentences(stripNoise(rawBody)).map(cleanSentence).filter((s) => s && !isBoilerplate(s));
+  const seen = new Set();
+  cands = cands.filter((s) => { const k = s.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 40);
+
+  if (cands.length <= 2) {
+    const fb = cands.join(' ') || clip(stripNoise(rawBody), 360);
+    return (lead && !fb.toLowerCase().startsWith(lead.slice(0, 20).toLowerCase())) ? `${lead} ${fb}`.slice(0, 600) : fb.slice(0, 600);
   }
-  const vecs = await embedAll(sentences);
-  const k = Math.min(3, Math.max(2, Math.round(sentences.length * 0.2)));
-  const picked = rankSentences(sentences, vecs, k).map((i) => sentences[i]);
+
+  const vecs = await embedAll(cands);
+  const rel = textRankRel(vecs);
+  const k = Math.min(4, Math.max(2, Math.round(cands.length * 0.25)));
+  const picked = mmrSelect(vecs, rel, k).map((i) => cands[i]);
+
   const parts = [];
-  if (lead) parts.push(lead.replace(/\s+/g, ' ').trim());
-  picked.forEach((s) => { if (!parts.includes(s)) parts.push(s); });
+  if (lead) parts.push(lead);
+  picked.forEach((s) => { if (!parts.some((p) => p.toLowerCase() === s.toLowerCase())) parts.push(s); });
   return parts.join(' ').slice(0, 600);
 }
 
