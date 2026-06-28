@@ -9,7 +9,7 @@
 <body>
     <div id="app">
         <aside class="sidebar">
-            <div class="sidebar-header">
+            <div class="sidebar-header" id="home-btn" title="Your memory profile">
                 <h1>stash<span class="dot">.</span></h1>
                 <p>Your archive</p>
             </div>
@@ -41,10 +41,27 @@
         </aside>
 
         <main class="content">
-            <div id="empty-state" class="empty-state">
-                <div class="logo-large">stash<span class="dot">.</span></div>
-                <p>Select a chat or page to read</p>
-                <div id="empty-stats" class="empty-stats"></div>
+            <div id="overview" class="overview">
+                <div class="ov-head">
+                    <p class="ov-eyebrow">Your memory profile</p>
+                    <h2 id="ov-identity" class="ov-identity">A quiet place for everything you have asked and read.</h2>
+                </div>
+                <div id="ov-stats" class="ov-stats"></div>
+                <div class="ov-card">
+                    <div class="ov-card-head">
+                        <h3>Your year in memory</h3>
+                        <span id="ov-heat-sub" class="ov-sub"></span>
+                    </div>
+                    <div id="ov-heatmap" class="ov-heatmap"></div>
+                </div>
+                <div class="ov-card">
+                    <div class="ov-card-head"><h3>What you keep</h3></div>
+                    <div id="ov-topics" class="ov-topics"></div>
+                </div>
+                <div class="ov-card" id="ov-revisit-card">
+                    <div class="ov-card-head"><h3>Jump back in</h3></div>
+                    <div id="ov-revisit" class="ov-revisit"></div>
+                </div>
             </div>
             
             <div id="chat-view" class="chat-view hidden">
