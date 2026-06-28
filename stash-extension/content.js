@@ -71,19 +71,29 @@ function extractChatGPT() {
 
 function extractClaude() {
   const out = [];
-  // user bubbles + assistant bubbles, in document order
-  document.querySelectorAll('[data-testid="user-message"], .font-claude-message').forEach((el) => {
-    const isUser = el.matches('[data-testid="user-message"]') || !!el.closest('[data-testid="user-message"]');
-    pushMsg(out, isUser ? 'user' : 'assistant', el);
-  });
+  // user bubbles + assistant bubbles, in document order. Current Claude wraps
+  // assistant prose in .font-claude-response (older builds used .font-claude-message);
+  // match both. :not(#markdown-artifact) keeps artifact/code panels from doubling up.
+  document
+    .querySelectorAll('[data-testid="user-message"], .font-claude-response:not(#markdown-artifact), .font-claude-message')
+    .forEach((el) => {
+      const isUser = el.matches('[data-testid="user-message"]') || !!el.closest('[data-testid="user-message"]');
+      pushMsg(out, isUser ? 'user' : 'assistant', el);
+    });
   return out;
 }
 
 function extractGemini() {
   const out = [];
+  // Gemini uses Angular custom elements. Prefer the inner content node so the
+  // turn toolbar/labels do not scrape in. Note: Gemini virtualises long threads,
+  // so only the turns currently rendered in the viewport are captured.
   document.querySelectorAll('user-query, model-response').forEach((el) => {
     const isUser = el.tagName.toLowerCase() === 'user-query';
-    pushMsg(out, isUser ? 'user' : 'assistant', el);
+    const inner = isUser
+      ? el.querySelector('div.query-content, .query-text') || el
+      : el.querySelector('message-content, .markdown, .model-response-text') || el;
+    pushMsg(out, isUser ? 'user' : 'assistant', inner);
   });
   return out;
 }
