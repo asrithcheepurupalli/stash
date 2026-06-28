@@ -80,7 +80,7 @@ Thanks for backing Stash Pro. Here is your license key:
 
 To activate:
 
-1. Install the free Stash extension if you have not yet: [link]
+1. Install the free Stash extension if you have not yet: https://stash.made-by-ac.com
 2. Open the Stash dashboard (click the stash. icon, then the home screen).
 3. Down in the bottom left, click **Activate Pro** and paste your key.
 

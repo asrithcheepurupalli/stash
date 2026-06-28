@@ -82,7 +82,10 @@ Stash lets you save your AI chat conversations and the web pages you read into a
 
 ---
 
-## Privacy policy (host this and paste the URL, e.g. https://stash.made-by-ac.com/privacy)
+## Privacy policy
+
+Live at **https://stash.made-by-ac.com/privacy.html** (paste this into the required Privacy Policy URL field).
+Support page live at **https://stash.made-by-ac.com/support.html**. Source text below.
 
 **Stash privacy policy**
 
