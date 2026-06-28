@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagFilterContainer = document.getElementById('tag-filter-container');
     const chatView = document.getElementById('chat-view');
     const overview = document.getElementById('overview');
+    const answerView = document.getElementById('answer-view');
+    const answerQuery = document.getElementById('answer-query');
+    const answerPassages = document.getElementById('answer-passages');
+    const answerSources = document.getElementById('answer-sources');
     const ovIdentity = document.getElementById('ov-identity');
     const ovStats = document.getElementById('ov-stats');
     const ovHeatmap = document.getElementById('ov-heatmap');
@@ -338,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showOverview() {
         currentActiveStash = null;
         chatView.classList.add('hidden');
+        answerView.classList.add('hidden');
         overview.classList.remove('hidden');
         overview.classList.remove('view-in'); void overview.offsetWidth; overview.classList.add('view-in');
         renderOverview();
@@ -568,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderChat(stash) {
         overview.classList.add('hidden');
+        answerView.classList.add('hidden');
         chatView.classList.remove('hidden');
         chatView.classList.remove('view-in'); void chatView.offsetWidth; chatView.classList.add('view-in');
 
@@ -798,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mode = next;
         searchMode.querySelectorAll('.mode-btn').forEach((b) => b.classList.toggle('active', b.dataset.mode === next));
         searchInput.placeholder = next === 'ask' ? 'Ask your stash anything...' : 'Search your stash...';
-        if (next === 'filter') { askResults = null; setAiStatus(''); renderSidebar(searchInput.value); }
+        if (next === 'filter') { askResults = null; setAiStatus(''); if (!answerView.classList.contains('hidden')) showOverview(); renderSidebar(searchInput.value); }
         else if (searchInput.value.trim()) runAsk(searchInput.value);
         else { askResults = null; renderSidebar(''); }
     }
@@ -818,17 +824,72 @@ document.addEventListener('DOMContentLoaded', () => {
         setAiStatus('');
     }
 
+    let askSeq = 0;
     async function runAsk(query) {
-        if (!query.trim()) { askResults = null; renderSidebar(''); return; }
+        if (!query.trim()) { askResults = null; answerView.classList.add('hidden'); renderSidebar(''); if (!currentActiveStash) showOverview(); return; }
+        const seq = ++askSeq;
         try {
             await ensureAI(true);
             askResults = await ai.search(query, allStashs, embIndex, 25);
+            if (seq !== askSeq) return; // a newer query superseded this one
             renderAskList();
-            if (askResults[0]) openItem(askResults[0].item);
+            if (!askResults.length) { showAnswer(query); renderAnswer(null, query, true); return; }
+            showAnswer(query);
+            renderAnswer(null, query, false); // loading state
+            const top = askResults.slice(0, 5).map((r) => r.item);
+            const ans = await ai.answer(query, top);
+            if (seq !== askSeq) return;
+            renderAnswer(ans, query, false);
         } catch (err) {
             console.error('[stash] ask failed', err);
             setAiStatus('On-device model could not load. Open the console and send me the error.');
         }
+    }
+
+    function showAnswer(query) {
+        overview.classList.add('hidden');
+        chatView.classList.add('hidden');
+        answerView.classList.remove('hidden');
+        answerView.classList.remove('view-in'); void answerView.offsetWidth; answerView.classList.add('view-in');
+        answerQuery.textContent = query;
+    }
+
+    // Render the assembled answer: relevant passages, each citing its source.
+    function renderAnswer(ans, query, empty) {
+        answerQuery.textContent = query;
+        if (empty) {
+            answerPassages.innerHTML = '<div class="ov-empty">Nothing in your memory speaks to that yet. Try different words, or save a few more things.</div>';
+            answerSources.innerHTML = '';
+            return;
+        }
+        if (!ans) {
+            answerPassages.innerHTML = '<div class="answer-loading"><span class="stash-dots3"><i></i><i></i><i></i></span>Reading across your memory...</div>';
+            answerSources.innerHTML = '';
+            return;
+        }
+        if (!ans.passages.length) {
+            answerPassages.innerHTML = '<div class="ov-empty">Your top matches did not have a clear passage for that. The closest memories are in the list on the left.</div>';
+        } else {
+            answerPassages.innerHTML = ans.passages.map((p, i) => {
+                const title = (p.item.title || p.item.data?.[0]?.content || 'Untitled').slice(0, 54);
+                return `<div class="answer-passage" style="animation-delay:${Math.min(i, 8) * 50}ms">
+                    <p class="answer-text">${escapeHtml(p.text)}</p>
+                    <button class="answer-cite" data-id="${p.item.id || p.item.timestamp}">
+                        <span class="nav-dot src-${sourceOf(p.item)}"></span>${escapeHtml(title)}</button></div>`;
+            }).join('');
+            answerPassages.querySelectorAll('.answer-cite').forEach((b) => b.addEventListener('click', () => {
+                const it = allStashs.find((x) => (x.id || x.timestamp) === b.dataset.id);
+                if (it) openItem(it);
+            }));
+        }
+        answerSources.innerHTML = (ans.sources || []).map((it) => {
+            const title = (it.title || it.data?.[0]?.content || 'Untitled').slice(0, 56);
+            return `<button class="answer-source" data-id="${it.id || it.timestamp}"><span class="nav-dot src-${sourceOf(it)}"></span><span class="answer-source-t">${escapeHtml(title)}</span><span class="ov-rev-m">${metaFor(it)}</span></button>`;
+        }).join('');
+        answerSources.querySelectorAll('.answer-source').forEach((b) => b.addEventListener('click', () => {
+            const it = allStashs.find((x) => (x.id || x.timestamp) === b.dataset.id);
+            if (it) openItem(it);
+        }));
     }
 
     function renderAskList() {

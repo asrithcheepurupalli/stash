@@ -262,6 +262,44 @@ export async function summarize(item) {
   return parts.join(' ').slice(0, 600);
 }
 
+// "Ask across everything": assemble a synthesized answer from the BEST passages
+// across the top matching memories. Extractive (no text generation) and honest:
+// every line is a real sentence from your own saved content, with its source. We
+// embed the query + candidate sentences, keep the relevant ones, and MMR-pick a
+// non-redundant set so the answer spans multiple memories instead of repeating.
+export async function answer(query, items) {
+  const top = (items || []).slice(0, 5);
+  if (!top.length) return { passages: [], sources: [] };
+  const q = await embed(query);
+  const cands = []; // { text, item }
+  for (const it of top) {
+    const page = (it.type || 'chat') === 'page';
+    const raw = page
+      ? (it.data || []).map((m) => m.content).join('\n')
+      : ((it.data || []).filter((m) => m.role !== 'user').map((m) => m.content).join('\n') || (it.data || []).map((m) => m.content).join('\n'));
+    let sents = splitSentences(stripNoise(raw)).map(cleanSentence).filter((s) => s && !isBoilerplate(s));
+    const seen = new Set();
+    sents = sents.filter((s) => { const k = s.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 30);
+    for (const s of sents) cands.push({ text: s, item: it });
+  }
+  if (!cands.length) return { passages: [], sources: top };
+
+  const vecs = await embedAll(cands.map((c) => c.text));
+  const rel = vecs.map((v) => cosine(q, v));
+  // keep only sentences actually relevant to the question, best first
+  let pool = rel.map((s, i) => [i, s]).filter(([, s]) => s >= 0.24).sort((a, b) => b[1] - a[1]).slice(0, 24).map(([i]) => i);
+  if (!pool.length) pool = rel.map((s, i) => [i, s]).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([i]) => i);
+  const picked = mmrSelect(pool.map((i) => vecs[i]), pool.map((i) => rel[i]), Math.min(6, pool.length), 0.7).map((j) => pool[j]);
+
+  const passages = picked
+    .map((i) => ({ text: cands[i].text, item: cands[i].item, score: rel[i] }))
+    .sort((a, b) => b.score - a.score);
+  // sources actually cited, in first-appearance order
+  const sources = [];
+  passages.forEach((p) => { if (!sources.includes(p.item)) sources.push(p.item); });
+  return { passages, sources };
+}
+
 // ---- keyword tag suggestions (no model needed) -------------------------------
 const STOP = new Set('the a an and or but if then this that these those is are was were be been being to of in on for with as by at from into about over after before your you we they it he she him her them our their its can could would should will just like get got make made use used using one two also not no yes do does did how what when where why who which while because so than too very more most some any all each other out up down off here there'.split(' '));
 export function suggestTags(item, max = 4) {

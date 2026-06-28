@@ -112,19 +112,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Two saves of the same chat/page should refresh one entry, not pile up
+  // duplicates. Identity = type + URL (or type + title + opening text when there
+  // is no URL). On a match we update in place, keep the tags/highlights/summary
+  // the user added, and only drop the cached embedding when the content changed.
+  const entrySig = (it) => (it.url
+    ? `${it.type || 'chat'}|${it.url}`
+    : `${it.type || 'chat'}|${(it.title || '').trim().toLowerCase()}|${(it.data && it.data[0] && it.data[0].content || '').slice(0, 120)}`);
+
   function saveEntry(partial) {
-    const entry = {
-      id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-      timestamp: new Date().toISOString(),
-      ...partial,
-    };
-    chrome.storage.local.get({ stashs: [] }, (result) => {
-      const updated = [entry, ...result.stashs];
-      chrome.storage.local.set({ stashs: updated }, () => {
+    chrome.storage.local.get({ stashs: [], embeddings: {} }, (result) => {
+      const stashs = result.stashs;
+      const embeddings = result.embeddings || {};
+      const sig = entrySig(partial);
+      const idx = stashs.findIndex((it) => entrySig(it) === sig);
+      let updated, statusMsg;
+      if (idx !== -1) {
+        const old = stashs[idx];
+        const changed = JSON.stringify(old.data) !== JSON.stringify(partial.data);
+        const merged = {
+          ...old,
+          title: partial.title || old.title,
+          url: partial.url || old.url,
+          source: partial.source || old.source,
+          type: partial.type || old.type,
+          data: partial.data,
+          timestamp: new Date().toISOString(),
+          tags: old.tags || [],
+          highlights: old.highlights || [],
+        };
+        if (changed) { delete embeddings[old.id]; delete merged.summary; } // re-embed / re-summarize
+        updated = [merged, ...stashs.filter((_, i) => i !== idx)];
+        statusMsg = partial.type === 'page' ? 'Page updated' : 'Updated';
+      } else {
+        const entry = { id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), timestamp: new Date().toISOString(), ...partial };
+        updated = [entry, ...stashs];
+        statusMsg = partial.type === 'page' ? 'Page saved' : 'Saved';
+      }
+      chrome.storage.local.set({ stashs: updated, embeddings }, () => {
         allStashs = updated;
         searchContainer.classList.remove('hidden');
         renderStashs();
-        showStatus(partial.type === 'page' ? 'Page saved' : 'Saved', false);
+        showStatus(statusMsg, false);
       });
     });
   }
