@@ -5,18 +5,17 @@
 
 // Runs in the page's own context via chrome.scripting. Must be self-contained.
 function extractPageContent() {
-  const pickMain = () =>
-    document.querySelector('article') ||
-    document.querySelector('main') ||
-    document.querySelector('[role="main"]') ||
-    document.body;
-  let text = '';
   const sel = window.getSelection && window.getSelection().toString();
+  let text = '';
   if (sel && sel.trim().length > 40) {
-    text = sel.trim();
+    text = sel.trim(); // honour an explicit selection verbatim
   } else {
-    const main = pickMain();
-    text = (main.innerText || main.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+    const root = document.querySelector('article') || document.querySelector('main') ||
+      document.querySelector('[role="main"]') || document.body;
+    const clone = root.cloneNode(true);
+    clone.querySelectorAll('script,style,noscript,nav,header,footer,aside,button,svg,[aria-hidden="true"]')
+      .forEach((n) => n.remove());
+    text = (clone.innerText || clone.textContent || '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   }
   return { title: (document.title || '').trim() || location.href, url: location.href, text: text.slice(0, 200000) };
 }

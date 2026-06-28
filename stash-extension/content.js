@@ -33,8 +33,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
+// Clean a message node into readable text: drop interactive cruft (Copy/Edit
+// buttons, icons, screen-reader-only labels) that otherwise scrape as stray
+// words, and normalise whitespace while keeping code-block line breaks.
+function cleanText(el) {
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('button, [role="button"], svg, .sr-only, [aria-hidden="true"]').forEach((n) => n.remove());
+  return (clone.innerText || clone.textContent || '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function pushMsg(arr, role, el) {
-  const content = (el.innerText || el.textContent || '').trim();
+  const content = cleanText(el);
   if (content) arr.push({ role, content });
 }
 
