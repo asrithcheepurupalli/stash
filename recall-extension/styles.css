@@ -1,0 +1,263 @@
+/* 
+ * Recall Styles
+ * Design: Zen Minimalist / Swiss Modern 
+ */
+
+:root {
+  --bg: #000000;
+  --surface: #0F0F10;
+  --border: #1A1A1C;
+  --text-primary: #FFFFFF;
+  --text-secondary: #8A8A8F;
+  --font-sans: system-ui, -apple-system, 'Inter', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 240px;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  padding: 20px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+h1 {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+button {
+  width: 100%;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 400;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  outline: none;
+}
+
+button:hover {
+  background-color: #151516;
+  border-color: #2A2A2C;
+}
+
+button:active {
+  background-color: #0A0A0B;
+}
+
+.actions-row {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.secondary-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.secondary-btn:hover {
+  color: white;
+  border-color: white;
+}
+
+.divider {
+  height: 1px;
+  width: 100%;
+  background-color: var(--border);
+  margin: 20px 0;
+}
+
+#search-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#search-input {
+  width: 100%;
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  outline: none;
+  margin-bottom: 16px;
+  transition: border-color 0.15s ease;
+}
+
+#search-input:focus {
+  border-color: #2A2A2C;
+}
+
+#recalls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#recalls-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+#recalls-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+#reader-view {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.minimal-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  padding: 0 !important;
+  width: auto !important;
+}
+
+.minimal-btn:hover {
+  color: var(--text-primary);
+  background: transparent !important;
+}
+
+#chat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 8px;
+  width: 100%;
+}
+
+#chat-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+#chat-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.message-role {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.message-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.message.user .message-body {
+  color: #E2E2E2;
+}
+
+.message.assistant .message-body {
+  color: #FFFFFF;
+}
+
+.recall-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.1s ease;
+}
+
+.recall-item:hover {
+  background-color: var(--surface);
+}
+
+.recall-title {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recall-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+#status-message {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.hidden {
+  display: none;
+  opacity: 0;
+}
+
+/* Perfect alignment and spacing */
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

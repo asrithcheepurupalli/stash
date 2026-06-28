@@ -1,0 +1,6 @@
+{
+  "name": "Recall Extension",
+  "description": "A premium, minimalist Chrome extension to extract and save ChatGPT conversations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

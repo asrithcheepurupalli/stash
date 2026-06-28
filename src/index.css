@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+/* made. design system tokens. Paper / ink / brand red, Fraunces display.
+   The dot is the logo: every sub-brand is "word" + an upright red period. */
+@theme {
+  --color-paper: #f6f3ee;
+  --color-paper-2: #efe9df;
+  --color-card: #fbfaf6;
+  --color-ink: #0b0b0c;
+  --color-ink-2: #2a2a27;
+  --color-red: #c8102e;
+  --color-gold: #bd9b4e;
+  --color-line: #ddd5c8;
+  --color-muted: #7c7770;
+
+  --font-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: rgba(200, 16, 46, 0.14); color: var(--color-ink); }
+}
+
+/* The wordmark: italic Fraunces with an upright brand-red period. */
+.wordmark { font-family: var(--font-serif); font-style: italic; font-weight: 600; letter-spacing: -0.01em; }
+.wordmark .dot { font-style: normal; color: var(--color-red); }
+
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }

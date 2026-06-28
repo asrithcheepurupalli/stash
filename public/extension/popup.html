@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recall</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1 id="app-title">Recall</h1>
+      <p id="app-subtitle">Save this conversation</p>
+    </header>
+
+    <main>
+      <div id="main-view">
+        <button id="save-btn">Save to Recall</button>
+        <div id="status-message" class="hidden">Saved successfully</div>
+        
+        <div class="actions-row">
+            <button id="open-dashboard" class="secondary-btn">Open Dashboard</button>
+        </div>
+
+        <div id="search-container" class="hidden">
+          <div class="divider"></div>
+          <input type="text" id="search-input" placeholder="Search saved chats..." autoComplete="off">
+          <div id="recalls-list"></div>
+        </div>
+      </div>
+
+      <div id="reader-view" class="hidden">
+        <button id="back-btn" class="minimal-btn">← Back</button>
+        <div id="chat-content"></div>
+      </div>
+    </main>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

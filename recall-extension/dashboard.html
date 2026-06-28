@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recall Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div id="app">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Recall</h1>
+                <p>Archive</p>
+            </div>
+            <div class="search-box">
+                <input type="text" id="dashboard-search" placeholder="Search conversations...">
+            </div>
+            <div id="tag-filter-container" class="tag-filters">
+                <!-- Tags will be injected here -->
+            </div>
+            <nav id="sidebar-list" class="sidebar-nav">
+                <!-- Chat list items (grouped by date) will be injected here -->
+            </nav>
+            <div class="sidebar-footer">
+                <button id="export-all" class="secondary-btn">Export All</button>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div id="empty-state" class="empty-state">
+                <div class="logo-large">RECALL</div>
+                <p>Select a conversation to begin</p>
+            </div>
+            
+            <div id="chat-view" class="chat-view hidden">
+                <header class="chat-header">
+                    <div class="chat-meta">
+                        <div class="title-row">
+                            <h2 id="active-chat-title">Conversation</h2>
+                        </div>
+                        <div class="meta-row">
+                            <span id="active-chat-date">Date</span>
+                            <div id="active-tags" class="tag-chips-small"></div>
+                            <button id="add-tag-btn" class="minimal-btn">+ Tag</button>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button id="continue-chat" class="icon-btn accent" title="Resume in a new ChatGPT thread">Resume (New Chat)</button>
+                        <button id="copy-chat" class="icon-btn" title="Copy as Markdown">Copy MD</button>
+                        <button id="export-md" class="icon-btn" title="Download as .md file">Export MD</button>
+                        <button id="delete-chat" class="icon-btn delete" title="Delete conversation">Delete</button>
+                    </div>
+                </header>
+                <div id="chat-messages" class="messages-container">
+                    <div id="chat-summary" class="chat-summary hidden">
+                        <h3>Insight Summary</h3>
+                        <p id="summary-text">AI-generated summary will appear here.</p>
+                    </div>
+                    <!-- Messages will be injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="dashboard.js"></script>
+</body>
+</html>

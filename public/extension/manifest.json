@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Recall",
+  "version": "1.0.0",
+  "description": "Extract and save your ChatGPT conversations with a single click.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Recall"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
+}
