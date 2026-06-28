@@ -34,10 +34,9 @@ function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; 
   );
 }
 
-// Set this to your Gumroad checkout link once the $39 Pro product exists, e.g.
-// 'https://made-by-ac.gumroad.com/l/stash'. Until then the Pro CTA reads
-// "Launching soon" so nothing dead-ends.
-const GUMROAD_URL = '';
+// Gumroad checkout for the $39 Pro product. Empty string falls back to a
+// "Launching soon" chip so nothing dead-ends.
+const GUMROAD_URL = 'https://madebyac.gumroad.com/l/stashpro';
 
 export default function App() {
   const [showGuide, setShowGuide] = useState(false);

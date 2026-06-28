@@ -14,7 +14,8 @@
  * slug also works). Until this is set, the dashboard keeps the dev toggle instead.
  */
 (function () {
-  const PRODUCT_ID = ''; // <-- set to your Gumroad product id / permalink, e.g. 'stash'
+  // Gumroad product permalink (the slug after /l/ in the product URL).
+  const PRODUCT_ID = 'stashpro';
   const VERIFY_URL = 'https://api.gumroad.com/v2/licenses/verify';
   const ORIGIN = 'https://api.gumroad.com/*';
 
@@ -44,11 +45,22 @@
     if (!configured()) return { ok: false, error: 'Licensing is not set up yet.' };
     if (!(await ensurePermission())) return { ok: false, error: 'Stash needs permission to verify with Gumroad. Activation cancelled.' };
 
+    // Gumroad's verify endpoint identifies the product by either `product_id`
+    // (a hash) or `product_permalink` (the slug). We hold one configured value
+    // and try it as both, so it works whichever form the account uses.
+    async function attempt(param) {
+      const body = new URLSearchParams({ [param]: PRODUCT_ID, license_key: key, increment_uses_count: 'false' });
+      const r = await fetch(VERIFY_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+      return r.json();
+    }
+
     let data;
     try {
-      const body = new URLSearchParams({ product_id: PRODUCT_ID, license_key: key, increment_uses_count: 'false' });
-      const r = await fetch(VERIFY_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
-      data = await r.json();
+      data = await attempt('product_id');
+      if (!data || !data.success) {
+        const alt = await attempt('product_permalink');
+        if (alt && alt.success) data = alt;
+      }
     } catch (_e) {
       return { ok: false, error: 'Could not reach Gumroad. Check your connection and try again.' };
     }
