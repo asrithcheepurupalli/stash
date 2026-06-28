@@ -33066,6 +33066,40 @@ async function buildIndex(items, existing, onProgress) {
   return { index, added: missing.length };
 }
 var tokenize2 = (s) => String(s || "").toLowerCase().match(/[a-z0-9]{3,}/g) || [];
+var triset = (s) => {
+  const p = `  ${s} `;
+  const out = /* @__PURE__ */ new Set();
+  for (let i = 0; i < p.length - 2; i++) out.add(p.slice(i, i + 3));
+  return out;
+};
+function lexScore(qTerms, it2) {
+  if (!qTerms.length) return 0;
+  const hay = itemText(it2).toLowerCase();
+  let credit = 0;
+  let tokSet = null;
+  for (const t of qTerms) {
+    if (hay.includes(t)) {
+      credit += 1;
+      continue;
+    }
+    if (!tokSet) tokSet = new Set(hay.match(/[a-z0-9]{3,}/g) || []);
+    const tg = triset(t);
+    let best = 0;
+    for (const u of tokSet) {
+      if (Math.abs(u.length - t.length) > 2) continue;
+      const ug = triset(u);
+      let m = 0;
+      for (const g of tg) if (ug.has(g)) m++;
+      const sim = 2 * m / (tg.size + ug.size);
+      if (sim > best) {
+        best = sim;
+        if (best >= 0.9) break;
+      }
+    }
+    if (best >= 0.55) credit += 0.6;
+  }
+  return credit / qTerms.length;
+}
 async function search(query, items, index, topK = 20) {
   const q = await embed(query);
   const qTerms = [...new Set(tokenize2(query))];
@@ -33075,16 +33109,12 @@ async function search(query, items, index, topK = 20) {
       const s = cosine(q, v);
       if (s > best) best = s;
     }
-    let lex = 0;
-    if (qTerms.length) {
-      const hay = itemText(it2).toLowerCase();
-      lex = qTerms.filter((t) => hay.includes(t)).length / qTerms.length;
-    }
-    return { item: it2, score: best + 0.12 * lex, sem: best };
+    const lex = lexScore(qTerms, it2);
+    return { item: it2, score: best + 0.16 * lex, sem: best, lex };
   }).sort((a, b) => b.score - a.score);
   if (!scored.length) return [];
   const top = scored[0].score;
-  return scored.filter((r) => r.sem >= 0.18 && r.score >= top * 0.55).slice(0, topK);
+  return scored.filter((r) => (r.sem >= 0.16 || r.lex >= 0.5) && r.score >= top * 0.55).slice(0, topK);
 }
 function stripNoise(text) {
   return String(text || "").replace(/```[\s\S]*?```/g, " ").replace(/`([^`]+)`/g, "$1").replace(/\s+/g, " ").trim();

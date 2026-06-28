@@ -92,6 +92,40 @@ export async function buildIndex(items, existing, onProgress) {
 
 const tokenize = (s) => (String(s || '').toLowerCase().match(/[a-z0-9]{3,}/g) || []);
 
+// Trigram set for fuzzy matching, so a typo ("petiod") still scores against the
+// real word ("period") instead of dropping to zero on an exact-substring miss.
+const triset = (s) => {
+  const p = `  ${s} `;
+  const out = new Set();
+  for (let i = 0; i < p.length - 2; i++) out.add(p.slice(i, i + 3));
+  return out;
+};
+
+// Lexical score in [0,1]: full credit for an exact term, partial credit for the
+// closest fuzzy token (trigram Dice), so misspelled queries still surface.
+function lexScore(qTerms, it) {
+  if (!qTerms.length) return 0;
+  const hay = itemText(it).toLowerCase();
+  let credit = 0;
+  let tokSet = null;
+  for (const t of qTerms) {
+    if (hay.includes(t)) { credit += 1; continue; }
+    if (!tokSet) tokSet = new Set(hay.match(/[a-z0-9]{3,}/g) || []);
+    const tg = triset(t);
+    let best = 0;
+    for (const u of tokSet) {
+      if (Math.abs(u.length - t.length) > 2) continue; // length gate keeps it cheap
+      const ug = triset(u);
+      let m = 0;
+      for (const g of tg) if (ug.has(g)) m++;
+      const sim = (2 * m) / (tg.size + ug.size);
+      if (sim > best) { best = sim; if (best >= 0.9) break; }
+    }
+    if (best >= 0.55) credit += 0.6; // near-miss / typo: partial credit
+  }
+  return credit / qTerms.length;
+}
+
 export async function search(query, items, index, topK = 20) {
   const q = await embed(query);
   const qTerms = [...new Set(tokenize(query))];
@@ -100,17 +134,15 @@ export async function search(query, items, index, topK = 20) {
     .map((it) => {
       let best = -1; // semantic: best-matching chunk (max-pool), not the average
       for (const v of index[it.id]) { const s = cosine(q, v); if (s > best) best = s; }
-      let lex = 0; // light lexical boost so exact terms (names, code) are not missed
-      if (qTerms.length) {
-        const hay = itemText(it).toLowerCase();
-        lex = qTerms.filter((t) => hay.includes(t)).length / qTerms.length;
-      }
-      return { item: it, score: best + 0.12 * lex, sem: best };
+      const lex = lexScore(qTerms, it); // exact + fuzzy (typo-tolerant) term overlap
+      return { item: it, score: best + 0.16 * lex, sem: best, lex };
     })
     .sort((a, b) => b.score - a.score);
   if (!scored.length) return [];
   const top = scored[0].score; // drop weak matches so "best matches" are actually good
-  return scored.filter((r) => r.sem >= 0.18 && r.score >= top * 0.55).slice(0, topK);
+  // Keep semantically-close items, OR ones a strong fuzzy term match vouches for
+  // (so a typo'd keyword query still returns its result even if the vector dips).
+  return scored.filter((r) => (r.sem >= 0.16 || r.lex >= 0.5) && r.score >= top * 0.55).slice(0, topK);
 }
 
 // ---- extractive summary: clean -> TextRank relevance -> MMR selection --------

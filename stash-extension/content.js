@@ -332,10 +332,40 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
     });
   }
 
+  const SRC_LABEL = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', web: 'web page' };
+  const INJECT_CAP = 8000; // inject the real memory, capped so it never floods the composer
+
+  // Reconstruct the full memory (not just the preview snippet) so the model has
+  // something it can actually use. Pulled fresh from storage by id at click time.
+  function buildContext(item, r) {
+    const title = (item && item.title) || r.title || 'Saved memory';
+    const src = (item && item.source) || r.source;
+    let body = '';
+    if (item && Array.isArray(item.data) && item.data.length) {
+      body = item.data.map((m) => {
+        const c = (m.content || '').trim();
+        if (!c) return '';
+        const who = m.role === 'user' ? 'Me' : m.role === 'assistant' ? 'AI' : '';
+        return who ? `${who}: ${c}` : c;
+      }).filter(Boolean).join('\n\n');
+    } else if (item && item.summary) {
+      body = item.summary;
+    } else {
+      body = r.snippet || '';
+    }
+    body = body.replace(/\n{3,}/g, '\n\n').trim();
+    let tail = '';
+    if (body.length > INJECT_CAP) { body = body.slice(0, INJECT_CAP).trim(); tail = '\n[... rest of this memory truncated]'; }
+    const where = src && SRC_LABEL[src] ? ` (from ${SRC_LABEL[src]})` : '';
+    return `\n\nContext from my Stash — "${title}"${where}:\n\n${body}${tail}\n`;
+  }
+
   function insert(r) {
-    const text = `\n\nContext from my Stash ("${r.title}"):\n${r.snippet || ''}\n`;
-    window.postMessage({ __stash: 'inject', text }, '*');
-    close();
+    chrome.storage.local.get({ stashs: [] }, (res) => {
+      const item = (res.stashs || []).find((s) => s.id === r.id);
+      window.postMessage({ __stash: 'inject', text: buildContext(item, r) }, '*');
+      close();
+    });
   }
 
   if (document.body) build();
