@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Recall",
+  "name": "Stash",
   "version": "1.0.0",
   "description": "Save your AI chats and the pages you read to a private archive that lives only on your device.",
   "permissions": [
@@ -13,7 +13,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Recall"
+    "default_title": "Stash"
   },
   "content_scripts": [
     {

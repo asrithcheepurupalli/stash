@@ -1,5 +1,5 @@
 /*
- * Recall popup. made. design system: paper / ink / brand red.
+ * Stash popup. made. design system: paper / ink / brand red.
  * Georgia italic stands in for Fraunces (extensions run offline).
  */
 :root {
@@ -94,9 +94,9 @@ button {
 #search-input::placeholder { color: var(--muted); }
 #search-input:focus { border-color: var(--ink); }
 
-#recalls-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
-#recalls-list::-webkit-scrollbar, #chat-content::-webkit-scrollbar { width: 4px; }
-#recalls-list::-webkit-scrollbar-thumb, #chat-content::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
+#stashs-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+#stashs-list::-webkit-scrollbar, #chat-content::-webkit-scrollbar { width: 4px; }
+#stashs-list::-webkit-scrollbar-thumb, #chat-content::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
 
 #reader-view { width: 100%; display: flex; flex-direction: column; gap: 18px; }
 
@@ -119,7 +119,7 @@ button {
 .message-body { font-size: 13px; line-height: 1.6; color: var(--ink); white-space: pre-wrap; word-wrap: break-word; }
 .message.user .message-body { color: var(--ink-2); }
 
-.recall-item {
+.stash-item {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -130,9 +130,9 @@ button {
   background: var(--card);
   transition: border-color 0.12s ease;
 }
-.recall-item:hover { border-color: var(--ink); }
-.recall-title { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.recall-meta { font-size: 11px; color: var(--muted); }
+.stash-item:hover { border-color: var(--ink); }
+.stash-title { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stash-meta { font-size: 11px; color: var(--muted); }
 
 #status-message {
   margin-top: 12px;

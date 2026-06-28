@@ -1,5 +1,5 @@
 /**
- * Recall Dashboard Logic
+ * Stash Dashboard Logic
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -21,14 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportMDBtn = document.getElementById('export-md');
     const continueBtn = document.getElementById('continue-chat');
 
-    let allRecalls = [];
-    let currentActiveRecall = null;
+    let allStashs = [];
+    let currentActiveStash = null;
     let selectedTag = null;
 
     // Load data
     function loadData() {
-        chrome.storage.local.get({ recalls: [] }, (result) => {
-            allRecalls = result.recalls;
+        chrome.storage.local.get({ stashs: [] }, (result) => {
+            allStashs = result.stashs;
             renderSidebar();
             renderTagFilters();
         });
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderTagFilters() {
         tagFilterContainer.innerHTML = "";
         const tags = new Set();
-        allRecalls.forEach(r => {
+        allStashs.forEach(r => {
             if (r.tags) r.tags.forEach(t => tags.add(t));
         });
 
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Helper: Group by Date
-    function groupRecalls(recalls) {
+    function groupStashs(stashs) {
         const groups = {
             'Today': [],
             'Yesterday': [],
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const sevenDaysAgo = new Date(today);
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        recalls.forEach(item => {
+        stashs.forEach(item => {
             const date = new Date(item.timestamp);
             if (date >= today) groups['Today'].push(item);
             else if (date >= yesterday) groups['Yesterday'].push(item);
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderSidebar(query = "") {
         sidebarList.innerHTML = "";
         
-        const filtered = allRecalls.filter(item => {
+        const filtered = allStashs.filter(item => {
             const matchesQuery = !query || 
                 (item.title?.toLowerCase().includes(query.toLowerCase()) || 
                  item.data.some(msg => msg.content.toLowerCase().includes(query.toLowerCase())));
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return matchesQuery && matchesTag;
         });
 
-        const grouped = groupRecalls(filtered);
+        const grouped = groupStashs(filtered);
 
         Object.keys(grouped).forEach(groupName => {
             if (grouped[groupName].length === 0) return;
@@ -112,14 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const date = new Date(item.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
                 const navItem = document.createElement('div');
-                navItem.className = `nav-item ${currentActiveRecall?.timestamp === item.timestamp ? 'active' : ''}`;
+                navItem.className = `nav-item ${currentActiveStash?.timestamp === item.timestamp ? 'active' : ''}`;
                 navItem.innerHTML = `
                     <div class="nav-item-title">${title}</div>
                     <div class="nav-item-meta">${date} • ${item.data.length} messages</div>
                 `;
                 
                 navItem.addEventListener('click', () => {
-                    currentActiveRecall = item;
+                    currentActiveStash = item;
                     renderChat(item);
                     renderSidebar(query);
                 });
@@ -132,20 +132,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Render Chat
-    function renderChat(recall) {
+    function renderChat(stash) {
         emptyState.classList.add('hidden');
         chatView.classList.remove('hidden');
         
-        const displayTitle = recall.title || recall.data[0]?.content || "Untitled Chat";
+        const displayTitle = stash.title || stash.data[0]?.content || "Untitled Chat";
         activeChatTitle.textContent = displayTitle.substring(0, 100) + (displayTitle.length > 100 ? "..." : "");
-        activeChatDate.textContent = new Date(recall.timestamp).toLocaleString();
+        activeChatDate.textContent = new Date(stash.timestamp).toLocaleString();
         
-        renderTags(recall);
+        renderTags(stash);
 
         // Handle Summary
-        if (recall.summary) {
+        if (stash.summary) {
             chatSummary.classList.remove('hidden');
-            summaryText.textContent = recall.summary;
+            summaryText.textContent = stash.summary;
         } else {
             chatSummary.classList.add('hidden');
         }
@@ -154,8 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Re-add Summary container since we cleared innerHTML
         messagesContainer.appendChild(chatSummary);
 
-        recall.data.forEach((msg, idx) => {
-            const isHighlighted = recall.highlights && recall.highlights.includes(idx);
+        stash.data.forEach((msg, idx) => {
+            const isHighlighted = stash.highlights && stash.highlights.includes(idx);
             
             const block = document.createElement('div');
             block.className = `message-block ${isHighlighted ? 'highlighted' : ''}`;
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="message-text ${msg.role === 'assistant' ? 'assistant-text' : ''}">${msg.content}</div>
             `;
 
-            block.querySelector('.highlight-btn').onclick = () => toggleHighlight(recall, idx);
+            block.querySelector('.highlight-btn').onclick = () => toggleHighlight(stash, idx);
 
             messagesContainer.appendChild(block);
         });
@@ -173,21 +173,21 @@ document.addEventListener('DOMContentLoaded', () => {
         messagesContainer.scrollTop = 0;
     }
 
-    function toggleHighlight(recall, index) {
-        if (!recall.highlights) recall.highlights = [];
-        const idx = recall.highlights.indexOf(index);
-        if (idx > -1) recall.highlights.splice(idx, 1);
-        else recall.highlights.push(index);
+    function toggleHighlight(stash, index) {
+        if (!stash.highlights) stash.highlights = [];
+        const idx = stash.highlights.indexOf(index);
+        if (idx > -1) stash.highlights.splice(idx, 1);
+        else stash.highlights.push(index);
 
-        chrome.storage.local.set({ recalls: allRecalls }, () => {
-            renderChat(recall);
+        chrome.storage.local.set({ stashs: allStashs }, () => {
+            renderChat(stash);
         });
     }
 
-    function renderTags(recall) {
+    function renderTags(stash) {
         activeTags.innerHTML = "";
-        if (recall.tags) {
-            recall.tags.forEach(tag => {
+        if (stash.tags) {
+            stash.tags.forEach(tag => {
                 const chip = document.createElement('span');
                 chip.className = 'tag-chip-mini';
                 chip.textContent = `#${tag}`;
@@ -197,16 +197,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     addTagBtn.addEventListener('click', () => {
-        if (!currentActiveRecall) return;
+        if (!currentActiveStash) return;
         const tag = prompt("Enter tag name (e.g. coding, ideas):");
         if (tag) {
             const cleanTag = tag.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
             if (cleanTag) {
-                if (!currentActiveRecall.tags) currentActiveRecall.tags = [];
-                if (!currentActiveRecall.tags.includes(cleanTag)) {
-                    currentActiveRecall.tags.push(cleanTag);
-                    chrome.storage.local.set({ recalls: allRecalls }, () => {
-                        renderTags(currentActiveRecall);
+                if (!currentActiveStash.tags) currentActiveStash.tags = [];
+                if (!currentActiveStash.tags.includes(cleanTag)) {
+                    currentActiveStash.tags.push(cleanTag);
+                    chrome.storage.local.set({ stashs: allStashs }, () => {
+                        renderTags(currentActiveStash);
                         renderTagFilters();
                     });
                 }
@@ -221,10 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Continue in ChatGPT (Resume logic)
     continueBtn.addEventListener('click', () => {
-        if (!currentActiveRecall) return;
+        if (!currentActiveStash) return;
         
         const context = "CONTEXT FROM PREVIOUS CONVERSATION:\n" + 
-                        convertToMarkdown(currentActiveRecall) + 
+                        convertToMarkdown(currentActiveStash) + 
                         "\n\n--- END OF CONTEXT ---\n" +
                         "Please resume this conversation based on the history above.";
         
@@ -236,11 +236,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Delete
     deleteBtn.addEventListener('click', () => {
-        if (!currentActiveRecall) return;
+        if (!currentActiveStash) return;
         if (confirm("Are you sure you want to delete this conversation?")) {
-            allRecalls = allRecalls.filter(r => r.timestamp !== currentActiveRecall.timestamp);
-            chrome.storage.local.set({ recalls: allRecalls }, () => {
-                currentActiveRecall = null;
+            allStashs = allStashs.filter(r => r.timestamp !== currentActiveStash.timestamp);
+            chrome.storage.local.set({ stashs: allStashs }, () => {
+                currentActiveStash = null;
                 chatView.classList.add('hidden');
                 emptyState.classList.remove('hidden');
                 renderSidebar(searchInput.value);
@@ -249,12 +249,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Helper: Convert to Markdown
-    function convertToMarkdown(recall) {
-        let md = `# ${recall.title || "Recall Export"}\n\n`;
-        md += `*Source: ${recall.url || "N/A"}*\n`;
-        md += `*Date: ${new Date(recall.timestamp).toLocaleString()}*\n\n---\n\n`;
+    function convertToMarkdown(stash) {
+        let md = `# ${stash.title || "Stash Export"}\n\n`;
+        md += `*Source: ${stash.url || "N/A"}*\n`;
+        md += `*Date: ${new Date(stash.timestamp).toLocaleString()}*\n\n---\n\n`;
         
-        recall.data.forEach(msg => {
+        stash.data.forEach(msg => {
             md += `### ${msg.role.toUpperCase()}\n\n${msg.content}\n\n`;
         });
         
@@ -263,8 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Copy as Markdown
     copyBtn.addEventListener('click', () => {
-        if (!currentActiveRecall) return;
-        const mdText = convertToMarkdown(currentActiveRecall);
+        if (!currentActiveStash) return;
+        const mdText = convertToMarkdown(currentActiveStash);
         navigator.clipboard.writeText(mdText).then(() => {
             const originalText = copyBtn.textContent;
             copyBtn.textContent = "Copied!";
@@ -274,12 +274,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Export as Markdown File
     exportMDBtn.addEventListener('click', () => {
-        if (!currentActiveRecall) return;
-        const mdText = convertToMarkdown(currentActiveRecall);
+        if (!currentActiveStash) return;
+        const mdText = convertToMarkdown(currentActiveStash);
         const blob = new Blob([mdText], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        const safeTitle = (currentActiveRecall.title || "recall").replace(/[^a-z0-9]/gi, '-').toLowerCase();
+        const safeTitle = (currentActiveStash.title || "stash").replace(/[^a-z0-9]/gi, '-').toLowerCase();
         a.href = url;
         a.download = `${safeTitle}-${new Date().toISOString().slice(0,10)}.md`;
         a.click();
@@ -287,11 +287,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Export All (JSON Backup)
     exportAllBtn.addEventListener('click', () => {
-        const blob = new Blob([JSON.stringify(allRecalls, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(allStashs, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `recall-backup-${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `stash-backup-${new Date().toISOString().slice(0,10)}.json`;
         a.click();
     });
 

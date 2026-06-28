@@ -44,7 +44,7 @@ export default function App() {
       const url = window.URL.createObjectURL(content);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "recall-extension.zip";
+      link.download = "stash-extension.zip";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -79,7 +79,7 @@ export default function App() {
   ];
 
   const FAQ = [
-    { q: "Where is my data stored?", a: "Only on your device, in your browser's local storage. Recall has no servers and no account, so there is nowhere else for it to go." },
+    { q: "Where is my data stored?", a: "Only on your device, in your browser's local storage. Stash has no servers and no account, so there is nowhere else for it to go." },
     { q: "Does it work with Claude and Gemini?", a: "Today it captures ChatGPT threads and web pages. Claude and Gemini capture are on the roadmap." },
     { q: "Can I export everything?", a: "Yes. Export your entire memory as a file from the dashboard at any time. Your archive belongs to you." },
     { q: "What happens if I uninstall?", a: "Because the data lives in your browser, removing the extension removes the archive. Export first if you want to keep it." },
@@ -90,14 +90,14 @@ export default function App() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full px-6 md:px-10 py-5 flex justify-between items-center z-50 bg-paper/80 backdrop-blur-md border-b border-line">
         <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="text-2xl">
-          <Wordmark name="recall" />
+          <Wordmark name="stash" />
         </button>
         <div className="hidden md:flex items-center gap-9 text-sm text-muted">
           <button onClick={() => scrollTo("features")} className="hover:text-ink transition-colors">Features</button>
           <button onClick={() => scrollTo("privacy")} className="hover:text-ink transition-colors">Privacy</button>
           <button onClick={() => scrollTo("how")} className="hover:text-ink transition-colors">How it works</button>
           <button onClick={handleInstall} className="px-5 py-2 bg-ink text-paper rounded-full font-medium hover:opacity-90 transition-opacity">
-            Get Recall
+            Get Stash
           </button>
         </div>
       </nav>
@@ -114,8 +114,8 @@ export default function App() {
         </motion.h1>
         <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.12 }}
           className="text-lg md:text-xl text-ink-2 leading-relaxed max-w-2xl mx-auto mt-7">
-          Recall keeps every AI conversation and the pages you read in one searchable
-          memory that lives only on your device. Think once, recall anytime. No servers,
+          Stash keeps every AI conversation and the pages you read in one searchable
+          memory that lives only on your device. Stash it once, find it anytime. No servers,
           no account, no one else can reach it.
         </motion.p>
 
@@ -126,7 +126,7 @@ export default function App() {
             {isBundling ? (
               <><span className="w-4 h-4 border-2 border-paper border-t-transparent rounded-full animate-spin" /> Preparing...</>
             ) : (
-              <><Download size={18} /> Download Recall <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" /></>
+              <><Download size={18} /> Download Stash <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" /></>
             )}
           </button>
           <span className="inline-flex items-center gap-2 text-sm text-muted">
@@ -144,7 +144,7 @@ export default function App() {
                 <i className="w-2.5 h-2.5 rounded-full bg-line inline-block" />
                 <i className="w-2.5 h-2.5 rounded-full bg-line inline-block" />
               </span>
-              <span className="text-xs text-muted">your recall archive</span>
+              <span className="text-xs text-muted">your stash archive</span>
             </div>
             <div className="space-y-3">
               {[
@@ -173,7 +173,7 @@ export default function App() {
           <p className="text-sm md:text-[15px] text-ink-2 leading-relaxed">
             Part of <Wordmark name="made" />'s local-first tools.{" "}
             <a href="https://airlock.made-by-ac.com" className="font-semibold text-ink underline decoration-red/40 underline-offset-2">Airlock</a>{" "}
-            guards what you <em>send</em> to AI. Recall keeps what you <em>get back</em>. Neither one ever phones home.
+            guards what you <em>send</em> to AI. Stash keeps what you <em>get back</em>. Neither one ever phones home.
           </p>
         </div>
       </section>
@@ -208,7 +208,7 @@ export default function App() {
           </h2>
           <p className="text-lg md:text-xl text-paper/70 leading-relaxed max-w-2xl mx-auto mt-7">
             Everyone else's "AI memory" is a copy of your thinking on someone else's
-            servers. Recall is local-first by design. There is no cloud, no account, no
+            servers. Stash is local-first by design. There is no cloud, no account, no
             tracking, and nothing for us to sell, because we never receive it.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-14 text-left">
@@ -250,7 +250,7 @@ export default function App() {
           <h2 className="font-serif font-medium text-3xl md:text-4xl tracking-tight mb-8">Three steps, then it just remembers.</h2>
           <ol className="space-y-7">
             {[
-              ["Capture", "On a chat or a page you want to keep, click Save to Recall. It reads the content locally and writes it to your archive."],
+              ["Capture", "On a chat or a page you want to keep, click Save to Stash. It reads the content locally and writes it to your archive."],
               ["Search", "Everything lands in one timeline in the dashboard. Search across every chat and page you have ever saved."],
               ["Resume", "Reopen any thread, or relaunch it into a fresh session with its context already pasted in. Pick up the thought."],
             ].map(([t, d], i) => (
@@ -287,7 +287,7 @@ export default function App() {
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button onClick={handleInstall} disabled={isBundling}
               className="px-8 py-4 bg-paper text-ink rounded-full font-semibold flex items-center gap-3 hover:opacity-90 transition-opacity disabled:opacity-50">
-              <Download size={18} /> Download Recall
+              <Download size={18} /> Download Stash
             </button>
             <span className="text-sm text-paper/50">Free · Local · No account</span>
           </div>
@@ -298,7 +298,7 @@ export default function App() {
       <footer className="px-6 md:px-10 py-14 border-t border-line max-w-6xl mx-auto w-full">
         <div className="flex flex-col md:flex-row justify-between gap-8">
           <div className="max-w-sm">
-            <div className="text-2xl mb-3"><Wordmark name="recall" /></div>
+            <div className="text-2xl mb-3"><Wordmark name="stash" /></div>
             <p className="text-sm text-muted leading-relaxed">
               Your AI chats and the pages you read, kept in one searchable memory that
               lives only on your device. A <Wordmark name="made" /> local-first tool.
@@ -323,7 +323,7 @@ export default function App() {
           </div>
         </div>
         <div className="mt-12 pt-6 border-t border-line flex flex-col md:flex-row justify-between items-center gap-3 text-xs text-muted">
-          <span>Recall is a made. product. Built local-first.</span>
+          <span>Stash is a made. product. Built local-first.</span>
           <span>No servers. No tracking. Your memory stays yours.</span>
         </div>
       </footer>
@@ -336,16 +336,16 @@ export default function App() {
               className="w-full max-w-xl bg-paper border border-line rounded-3xl overflow-hidden shadow-2xl">
               <div className="px-8 py-7 border-b border-line flex justify-between items-start">
                 <div>
-                  <h2 className="font-serif font-medium text-2xl tracking-tight">Add Recall to Chrome</h2>
+                  <h2 className="font-serif font-medium text-2xl tracking-tight">Add Stash to Chrome</h2>
                   <p className="text-sm text-muted mt-1">Three quick steps and it is yours.</p>
                 </div>
                 <button onClick={() => setShowGuide(false)} className="w-10 h-10 rounded-full bg-paper-2 hover:bg-line grid place-items-center text-muted">✕</button>
               </div>
               <div className="px-8 py-7 space-y-6">
                 {[
-                  ["Unzip it", <>Find <span className="font-mono text-ink">recall-extension.zip</span> in your downloads and expand it into a folder.</>],
+                  ["Unzip it", <>Find <span className="font-mono text-ink">stash-extension.zip</span> in your downloads and expand it into a folder.</>],
                   ["Open extensions", <>Go to <span className="font-mono text-ink cursor-pointer underline" onClick={() => window.open("chrome://extensions", "_blank")}>chrome://extensions</span> and switch on <b>Developer mode</b>.</>],
-                  ["Load unpacked", <>Click <b>Load unpacked</b> and choose the folder you just expanded. Recall is live.</>],
+                  ["Load unpacked", <>Click <b>Load unpacked</b> and choose the folder you just expanded. Stash is live.</>],
                 ].map(([t, d], i) => (
                   <div key={i} className="flex gap-4">
                     <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-ink text-paper grid place-items-center font-serif font-semibold">{i + 1}</span>

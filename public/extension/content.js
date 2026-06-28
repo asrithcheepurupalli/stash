@@ -1,5 +1,5 @@
 /**
- * Recall Content Script
+ * Stash Content Script
  * Extracts messages from the current ChatGPT conversation.
  */
 

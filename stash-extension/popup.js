@@ -1,12 +1,12 @@
 /**
- * Recall Popup Logic
+ * Stash Popup Logic
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   const saveBtn = document.getElementById('save-btn');
   const statusMessage = document.getElementById('status-message');
   const searchInput = document.getElementById('search-input');
-  const recallsList = document.getElementById('recalls-list');
+  const stashsList = document.getElementById('stashs-list');
   const searchContainer = document.getElementById('search-container');
   const mainView = document.getElementById('main-view');
   const readerView = document.getElementById('reader-view');
@@ -14,10 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatContent = document.getElementById('chat-content');
   const openDashboardBtn = document.getElementById('open-dashboard');
 
-  let allRecalls = [];
+  let allStashs = [];
 
   // Initialize
-  loadRecalls();
+  loadStashs();
 
   openDashboardBtn.addEventListener('click', () => {
     chrome.tabs.create({ url: 'dashboard.html' });
@@ -44,29 +44,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     } catch (error) {
-      console.error("Recall Error:", error);
+      console.error("Stash Error:", error);
     }
   });
 
   searchInput.addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase();
-    renderRecalls(query);
+    renderStashs(query);
   });
 
-  function loadRecalls() {
-    chrome.storage.local.get({ recalls: [] }, (result) => {
-      allRecalls = result.recalls;
-      if (allRecalls.length > 0) {
+  function loadStashs() {
+    chrome.storage.local.get({ stashs: [] }, (result) => {
+      allStashs = result.stashs;
+      if (allStashs.length > 0) {
         searchContainer.classList.remove('hidden');
-        renderRecalls();
+        renderStashs();
       }
     });
   }
 
-  function renderRecalls(query = "") {
-    recallsList.innerHTML = "";
+  function renderStashs(query = "") {
+    stashsList.innerHTML = "";
     
-    const filtered = allRecalls.filter(item => {
+    const filtered = allStashs.filter(item => {
       if (!query) return true;
       const titleMatch = item.title?.toLowerCase().includes(query);
       const contentMatch = item.data.some(msg => msg.content.toLowerCase().includes(query));
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (filtered.length === 0) {
-      recallsList.innerHTML = `<div class="recall-meta" style="text-align: center; padding: 10px;">No results found</div>`;
+      stashsList.innerHTML = `<div class="stash-meta" style="text-align: center; padding: 10px;">No results found</div>`;
       return;
     }
 
@@ -83,22 +83,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const excerpt = displayTitle.substring(0, 40) + (displayTitle.length > 40 ? "..." : "");
       
       const el = document.createElement('div');
-      el.className = 'recall-item';
+      el.className = 'stash-item';
       el.innerHTML = `
-        <div class="recall-title">${excerpt}</div>
-        <div class="recall-meta">${new Date(item.timestamp).toLocaleDateString()} • ${item.data.length} messages</div>
+        <div class="stash-title">${excerpt}</div>
+        <div class="stash-meta">${new Date(item.timestamp).toLocaleDateString()} • ${item.data.length} messages</div>
       `;
       el.addEventListener('click', () => openChat(item));
-      recallsList.appendChild(el);
+      stashsList.appendChild(el);
     });
   }
 
-  function openChat(recall) {
+  function openChat(stash) {
     mainView.classList.add('hidden');
     readerView.classList.remove('hidden');
     
     chatContent.innerHTML = "";
-    recall.data.forEach(msg => {
+    stash.data.forEach(msg => {
       const msgEl = document.createElement('div');
       msgEl.className = `message ${msg.role}`;
       msgEl.innerHTML = `
@@ -120,12 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
       title: response.title
     };
 
-    chrome.storage.local.get({ recalls: [] }, (result) => {
-      const updatedRecalls = [entry, ...result.recalls];
-      chrome.storage.local.set({ recalls: updatedRecalls }, () => {
-        allRecalls = updatedRecalls;
+    chrome.storage.local.get({ stashs: [] }, (result) => {
+      const updatedStashs = [entry, ...result.stashs];
+      chrome.storage.local.set({ stashs: updatedStashs }, () => {
+        allStashs = updatedStashs;
         searchContainer.classList.remove('hidden');
-        renderRecalls();
+        renderStashs();
         showSuccess();
       });
     });

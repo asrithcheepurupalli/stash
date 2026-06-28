@@ -1,5 +1,5 @@
 {
-  "name": "Recall Extension",
+  "name": "Stash Extension",
   "description": "A premium, minimalist Chrome extension to extract and save ChatGPT conversations.",
   "requestFramePermissions": [],
   "majorCapabilities": []
