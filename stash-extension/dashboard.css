@@ -424,6 +424,17 @@ body {
 .secondary-btn.accent:disabled { opacity: 0.6; cursor: default; }
 .license-msg { font-size: 12px; line-height: 1.4; color: var(--danger); }
 
+/* Pro welcome (founder's note on activation) */
+.stash-welcome { position: fixed; right: 24px; bottom: 24px; z-index: 9999; width: 364px; max-width: calc(100vw - 32px); background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 22px 22px 20px; box-shadow: 0 30px 70px -20px rgba(11, 11, 12, 0.42); opacity: 0; transform: translateY(18px) scale(0.98); transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); font-family: var(--font-sans); }
+.stash-welcome.in { opacity: 1; transform: none; }
+.sw-close { position: absolute; top: 13px; right: 16px; background: none; border: none; font-size: 22px; line-height: 1; color: var(--text-muted); cursor: pointer; padding: 0; }
+.sw-close:hover { color: var(--text-primary); }
+.sw-mark { margin-bottom: 13px; }
+.sw-title { font-family: var(--font-serif); font-weight: 600; font-size: 23px; letter-spacing: -0.01em; margin: 0 0 9px; color: var(--text-primary); }
+.sw-body { font-size: 14px; line-height: 1.55; color: var(--text-secondary); margin: 0 0 15px; }
+.sw-sign { font-family: var(--font-serif); font-style: italic; font-size: 15px; color: var(--text-primary); margin: 0; }
+.sw-lic { font-size: 11px; color: var(--text-muted); margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--border); }
+
 /* import / export side by side */
 .footer-row { display: flex; gap: 8px; }
 .footer-row .secondary-btn { flex: 1; }

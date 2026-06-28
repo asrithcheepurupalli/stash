@@ -807,6 +807,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function closeLicense() { licensePanel.classList.add('hidden'); }
 
+    // A warm welcome the moment Pro unlocks. They just backed a small studio, so
+    // this reads like a note from us, not a system toast.
+    function showWelcome(email) {
+        const el = document.createElement('div');
+        el.className = 'stash-welcome';
+        el.innerHTML = `
+            <button class="sw-close" aria-label="Close">&times;</button>
+            <div class="sw-mark"><svg width="34" height="34" viewBox="0 0 24 24" fill="none"><rect x="8" y="3.5" width="12" height="15" rx="3" fill="#0b0b0c" opacity="0.28"/><rect x="4" y="6" width="13" height="15" rx="3" fill="#0b0b0c"/><circle cx="8" cy="11.5" r="2" fill="#c8102e"/></svg></div>
+            <h3 class="sw-title">You're in.</h3>
+            <p class="sw-body">Thank you for backing Stash Pro. It genuinely helps a small studio keep building tools that stay on your side. Everything is unlocked now, and like the rest of Stash, all of it lives on your device and nowhere else.</p>
+            <p class="sw-sign">the made. team</p>
+            ${email ? `<p class="sw-lic">Licensed to ${escapeHtml(email)}</p>` : ''}`;
+        document.body.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('in'));
+        const close = () => { el.classList.remove('in'); setTimeout(() => el.remove(), 320); };
+        el.querySelector('.sw-close').addEventListener('click', close);
+        setTimeout(close, 12000);
+    }
+
     function setProActive(on) {
         proActive = on;
         if (!on && mode === 'ask') setMode('filter');
@@ -840,7 +859,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok) {
             closeLicense();
             setProActive(true);
-            setAiStatus(res.email ? `Pro active. Thanks${res.email ? `, ${res.email}` : ''}.` : 'Pro active. Welcome in.');
+            showWelcome(res.email);
         } else {
             licenseMsg.textContent = res.error || 'Could not activate.';
             licenseMsg.classList.remove('hidden');
