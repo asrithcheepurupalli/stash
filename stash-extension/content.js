@@ -206,7 +206,19 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
       .stash-mem-head .stash-mark{margin-top:1px;flex:0 0 auto}
       .stash-mem-title{font:600 14px/1.2 inherit;margin:0}
       .stash-mem-sub{font-size:11px;color:#7c7770;margin-top:3px}
-      .stash-mem-search{box-sizing:border-box;margin:11px 16px 0;width:calc(100% - 32px);padding:9px 12px;border:1px solid #ddd5c8;border-radius:10px;
+      .stash-save-row{padding:12px 16px 4px}
+      .stash-save-btn{width:100%;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+        background:#0b0b0c;color:#f6f3ee;border:none;border-radius:11px;padding:11px 14px;font:600 13px/1 ui-sans-serif,system-ui,-apple-system,sans-serif;
+        cursor:pointer;transition:transform .12s ease,background .18s ease,opacity .15s ease}
+      .stash-save-btn:hover{transform:translateY(-1px);opacity:.93}
+      .stash-save-btn:active{transform:translateY(0) scale(.99)}
+      .stash-save-btn.saved{background:#c8102e}
+      .stash-save-btn.saved::before{content:"";width:13px;height:13px;flex:0 0 13px;background:#f6f3ee;
+        -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") center/contain no-repeat;
+        mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") center/contain no-repeat}
+      .stash-recall-label{padding:14px 16px 0;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#a8a299;
+        border-top:1px solid #ece6da;margin-top:10px}
+      .stash-mem-search{box-sizing:border-box;margin:9px 16px 0;width:calc(100% - 32px);padding:9px 12px;border:1px solid #ddd5c8;border-radius:10px;
         background:#fbfaf6;font:13px ui-sans-serif,system-ui,sans-serif;color:#0b0b0c;outline:none;transition:border-color .15s ease,box-shadow .15s ease}
       .stash-mem-search:focus{border-color:#0b0b0c;box-shadow:0 0 0 3px rgba(11,11,12,.05)}
       .stash-mem-list{max-height:344px;overflow-y:auto;padding:8px}
@@ -236,7 +248,62 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
     document.documentElement.appendChild(st);
   }
 
-  let panel, listEl, searchEl, btn, debounce;
+  let panel, listEl, searchEl, btn, saveBtn, debounce;
+
+  // Same dedup identity as the popup: re-saving a chat updates one entry.
+  const entrySig = (it) => (it.url
+    ? `${it.type || 'chat'}|${it.url}`
+    : `${it.type || 'chat'}|${(it.title || '').trim().toLowerCase()}|${(it.data && it.data[0] && it.data[0].content || '').slice(0, 120)}`);
+
+  function flashSave(text, ok) {
+    if (!saveBtn) return;
+    saveBtn.textContent = text;
+    saveBtn.classList.toggle('saved', !!ok);
+    clearTimeout(saveBtn._t);
+    saveBtn._t = setTimeout(() => { saveBtn.classList.remove('saved'); setSaveLabel(); }, 2200);
+  }
+
+  // Label reflects whether this exact conversation is already in the stash.
+  function setSaveLabel() {
+    if (!saveBtn) return;
+    const url = location.href;
+    chrome.storage.local.get({ stashs: [] }, (r) => {
+      const exists = (r.stashs || []).some((it) => it.url === url);
+      if (!saveBtn.classList.contains('saved')) saveBtn.textContent = exists ? 'Update this conversation' : 'Save this conversation';
+    });
+  }
+
+  // The pill saves the live chat itself, so you never have to open the popup.
+  function saveCurrentChat() {
+    const source = siteSource();
+    const data = extractChat(source);
+    if (!data || !data.length) { flashSave('Nothing to save here yet', false); return; }
+    let title = cleanTitle(document.title);
+    if (!title || /^(chatgpt|claude|gemini)$/i.test(title)) title = (data.find((m) => m.role === 'user')?.content || 'Conversation').slice(0, 80);
+    const partial = { type: 'chat', source, title, url: location.href, data };
+    chrome.storage.local.get({ stashs: [], embeddings: {} }, (res) => {
+      const stashs = res.stashs || [];
+      const embeddings = res.embeddings || {};
+      const sig = entrySig(partial);
+      const idx = stashs.findIndex((it) => entrySig(it) === sig);
+      let updated, isUpdate = false;
+      if (idx !== -1) {
+        isUpdate = true;
+        const old = stashs[idx];
+        const changed = JSON.stringify(old.data) !== JSON.stringify(partial.data);
+        const merged = { ...old, title: partial.title || old.title, url: partial.url || old.url, source: partial.source || old.source, type: 'chat', data: partial.data, timestamp: new Date().toISOString(), tags: old.tags || [], highlights: old.highlights || [] };
+        if (changed) { delete embeddings[old.id]; delete merged.summary; }
+        updated = [merged, ...stashs.filter((_, i) => i !== idx)];
+      } else {
+        const entry = { id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), timestamp: new Date().toISOString(), ...partial };
+        updated = [entry, ...stashs];
+      }
+      chrome.storage.local.set({ stashs: updated, embeddings }, () => {
+        flashSave(isUpdate ? 'Updated' : 'Saved', true);
+        refreshCount();
+      });
+    });
+  }
 
   function build() {
     injectStyles();
@@ -251,15 +318,21 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
       <div class="stash-mem-head">
         ${markSvg(22)}
         <div>
-          <div class="stash-mem-title">Pull from your memory</div>
-          <div class="stash-mem-sub">Relevant saved chats and pages, on your device.</div>
+          <div class="stash-mem-title">Stash this conversation</div>
+          <div class="stash-mem-sub">Save it here, or pull from what you have saved.</div>
         </div>
       </div>
+      <div class="stash-save-row">
+        <button id="stash-save-btn" class="stash-save-btn">Save this conversation</button>
+      </div>
+      <div class="stash-recall-label">Pull from your memory</div>
       <input class="stash-mem-search" type="text" placeholder="What is this about?">
       <div class="stash-mem-list"></div>
       <div class="stash-mem-foot">Click one to drop it into your prompt as context.</div>`;
     listEl = panel.querySelector('.stash-mem-list');
     searchEl = panel.querySelector('.stash-mem-search');
+    saveBtn = panel.querySelector('#stash-save-btn');
+    saveBtn.addEventListener('click', () => saveCurrentChat());
     searchEl.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(() => run(searchEl.value), 350); });
     document.body.appendChild(btn);
     document.body.appendChild(panel);
@@ -286,6 +359,7 @@ chrome.storage.local.get(['pending_resume_context'], (result) => {
     if (panel.classList.contains('open')) { close(); return; }
     adjustForAirlock();
     refreshCount();
+    setSaveLabel();
     chrome.storage.local.get({ pro_active: false }, (r) => {
       panel.classList.add('open');
       if (!r.pro_active) {
