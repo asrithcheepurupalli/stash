@@ -4,3 +4,8 @@ dist
 .env.local
 *.zip
 .DS_Store
+.model-cache
+emb-test*.mjs
+
+# generated from stash-extension/ by the prebuild step (npm run sync:ext)
+public/extension

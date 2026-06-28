@@ -27,11 +27,11 @@ export default function App() {
     setIsBundling(true);
     try {
       const zip = new JSZip();
-      const files = [
-        "content.js", "dashboard.css", "dashboard.html", "dashboard.js",
-        "icon.png", "manifest.json", "popup.html", "popup.js", "styles.css",
-        "icon-generator.html",
-      ];
+      // The file list is generated at build time (see scripts/sync-extension)
+      // so the bundled model + runtime under vendor/ and models/ are included.
+      const listRes = await fetch(`${window.location.origin}/extension/files.json`);
+      if (!listRes.ok) throw new Error("Could not load the extension file list");
+      const files: string[] = await listRes.json();
       await Promise.all(
         files.map(async (file) => {
           const response = await fetch(`${window.location.origin}/extension/${file}`);

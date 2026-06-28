@@ -361,3 +361,55 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .nav-item, .chat-view.view-in { animation: none; }
 }
+
+/* ============ Phase 2: Pro on-device AI ============ */
+
+/* Filter | Ask mode toggle */
+.search-mode { display: flex; gap: 4px; padding: 0 24px 10px; }
+.mode-btn {
+    flex: 1; font-size: 12px; padding: 7px 10px; border-radius: 9px; cursor: pointer;
+    background: var(--card); border: 1px solid var(--border); color: var(--text-secondary);
+    font-family: var(--font-sans); font-weight: 500; transition: all 0.15s ease;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.mode-btn:hover { color: var(--text-primary); }
+.mode-btn.active { background: var(--text-primary); color: var(--bg); border-color: var(--text-primary); }
+.pro-tag {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 1px 5px; border-radius: 999px; background: var(--danger); color: #fff;
+}
+.mode-btn.active .pro-tag { background: var(--bg); color: var(--danger); }
+.pro-tag.unlocked { opacity: 0.55; }
+
+.ai-status {
+    margin: 0 24px 12px; padding: 8px 12px; border-radius: 9px;
+    background: rgba(200,16,46,0.06); border: 1px solid rgba(200,16,46,0.18);
+    color: var(--text-secondary); font-size: 12px; line-height: 1.4;
+}
+
+.match-pct { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
+.nav-item.active .match-pct { color: var(--danger); }
+
+/* summary panel */
+.summary-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.summary-head h3 { margin: 0; font-family: var(--font-serif); font-size: 16px; }
+.chip-btn {
+    font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+    background: var(--text-primary); color: var(--bg); border: 1px solid var(--text-primary);
+    font-family: var(--font-sans); transition: opacity 0.15s ease;
+}
+.chip-btn:hover { opacity: 0.85; }
+.chip-btn:disabled { opacity: 0.5; cursor: default; }
+#summary-text.hidden { display: none; }
+
+.suggested-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+.suggest-label { font-size: 11px; color: var(--text-muted); }
+.suggest-chip {
+    font-size: 11px; padding: 3px 9px; border-radius: 999px; cursor: pointer;
+    background: transparent; border: 1px dashed var(--text-muted); color: var(--text-secondary);
+    font-family: var(--font-sans); transition: all 0.15s ease;
+}
+.suggest-chip:hover { border-style: solid; color: var(--text-primary); border-color: var(--text-primary); }
+
+/* interim Pro toggle in footer */
+.pro-toggle.on { background: var(--text-primary); color: var(--bg); border-color: var(--text-primary); }

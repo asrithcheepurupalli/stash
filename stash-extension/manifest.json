@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Stash",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Save your AI chats and the pages you read to a private archive that lives only on your device.",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "permissions": [
     "activeTab",
     "storage",

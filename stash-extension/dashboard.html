@@ -16,6 +16,11 @@
             <div class="search-box">
                 <input type="text" id="dashboard-search" placeholder="Search your stash...">
             </div>
+            <div id="search-mode" class="search-mode">
+                <button class="mode-btn active" data-mode="filter">Filter</button>
+                <button class="mode-btn" data-mode="ask">Ask <span class="pro-tag">Pro</span></button>
+            </div>
+            <div id="ai-status" class="ai-status hidden"></div>
             <div id="type-filters" class="type-filters">
                 <!-- type + source filter chips injected here -->
             </div>
@@ -26,6 +31,7 @@
                 <!-- Chat list items (grouped by date) will be injected here -->
             </nav>
             <div class="sidebar-footer">
+                <button id="pro-toggle" class="secondary-btn pro-toggle">Pro: off</button>
                 <button id="export-all" class="secondary-btn">Export All</button>
             </div>
         </aside>
@@ -58,8 +64,12 @@
                 </header>
                 <div id="chat-messages" class="messages-container">
                     <div id="chat-summary" class="chat-summary hidden">
-                        <h3>Insight Summary</h3>
-                        <p id="summary-text">AI-generated summary will appear here.</p>
+                        <div class="summary-head">
+                            <h3>Summary</h3>
+                            <button id="gen-summary" class="chip-btn">Summarize</button>
+                        </div>
+                        <p id="summary-text"></p>
+                        <div id="suggested-tags" class="suggested-tags"></div>
                     </div>
                     <!-- Messages will be injected here -->
                 </div>
