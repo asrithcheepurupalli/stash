@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ovHeatmap = document.getElementById('ov-heatmap');
     const ovHeatSub = document.getElementById('ov-heat-sub');
     const ovTopics = document.getElementById('ov-topics');
+    const ovCollections = document.getElementById('ov-collections');
+    const reorganizeBtn = document.getElementById('ov-reorganize');
     const ovRevisit = document.getElementById('ov-revisit');
     const homeBtn = document.getElementById('home-btn');
     const messagesContainer = document.getElementById('chat-messages');
@@ -50,6 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let ai = null;                // lazily import('./ai.js')
     let embIndex = {};            // { [id]: vector }, persisted in storage
     let askResults = null;        // last semantic ranking, or null in filter mode
+    let collections = null;       // auto-organized clusters, or null until built
+    let collecting = false;
 
     // ---- helpers -----------------------------------------------------------
     const SOURCE_LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', web: 'Web' };
@@ -144,6 +148,172 @@ document.addEventListener('DOMContentLoaded', () => {
         return Object.entries(counts).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, n).map(([label, count]) => ({ label, count }));
     }
 
+    // ===================== Auto-organize (collections) =====================
+    // Cluster items by their embeddings (full version of "what you keep"): an item
+    // vector = mean of its chunk vectors; leader clustering + a merge pass groups
+    // similar memories; each group is named by its most distinctive terms (TF x
+    // inverse cluster frequency). All on-device, reusing the same index Ask uses.
+    const CLUSTER_T = 0.46;
+
+    function meanVec(chunks) {
+        if (!chunks || !chunks.length || !Array.isArray(chunks[0])) return null;
+        const d = chunks[0].length;
+        const out = new Array(d).fill(0);
+        for (const v of chunks) for (let i = 0; i < d; i++) out[i] += v[i];
+        let norm = 0;
+        for (let i = 0; i < d; i++) { out[i] /= chunks.length; norm += out[i] * out[i]; }
+        norm = Math.sqrt(norm) || 1;
+        for (let i = 0; i < d; i++) out[i] /= norm;
+        return out;
+    }
+
+    function clusterItems(items) {
+        const pts = [];
+        for (const it of items) {
+            if (!it.id) continue;
+            const v = meanVec(embIndex[it.id]);
+            if (v) pts.push({ it, v });
+        }
+        pts.sort((a, b) => new Date(b.it.timestamp) - new Date(a.it.timestamp)); // stable order
+        const clusters = [];
+        for (const p of pts) {
+            let best = null, bestS = CLUSTER_T;
+            for (const c of clusters) { const s = ai.cosine(p.v, c.centroid); if (s > bestS) { bestS = s; best = c; } }
+            if (best) { best.pts.push(p); best.centroid = meanVec(best.pts.map((x) => x.v)); }
+            else clusters.push({ pts: [p], centroid: p.v });
+        }
+        for (let i = 0; i < clusters.length; i++) { // merge near-duplicate clusters
+            for (let j = i + 1; j < clusters.length; j++) {
+                if (ai.cosine(clusters[i].centroid, clusters[j].centroid) >= CLUSTER_T + 0.08) {
+                    clusters[i].pts.push(...clusters[j].pts);
+                    clusters[i].centroid = meanVec(clusters[i].pts.map((x) => x.v));
+                    clusters.splice(j, 1); j--;
+                }
+            }
+        }
+        return clusters.map((c) => c.pts.map((p) => p.it));
+    }
+
+    function termCounts(items) {
+        const counts = {};
+        const add = (w, by) => { counts[w] = (counts[w] || 0) + by; };
+        items.forEach((it) => {
+            (it.tags || []).forEach((t) => add(String(t).toLowerCase(), 3));
+            const text = (`${it.title || ''} ${(it.data || []).map((m) => m.content).join(' ')}`).toLowerCase();
+            const seen = new Set();
+            (text.match(/[a-z][a-z0-9+#.-]{2,}/g) || []).forEach((raw) => {
+                const w = raw.replace(/^[.#+-]+/, '').replace(/[.#+-]+$/, '');
+                if (w.length < 4 || OV_STOP.has(w) || seen.has(w)) return;
+                seen.add(w); add(w, 1);
+            });
+        });
+        return counts;
+    }
+
+    function nameClusters(clusters) {
+        const perCluster = clusters.map(termCounts);
+        const cf = {};
+        perCluster.forEach((c) => Object.keys(c).forEach((w) => { cf[w] = (cf[w] || 0) + 1; }));
+        const N = clusters.length;
+        const tc = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+        const usedPrimary = new Set();
+        return clusters.map((items, i) => {
+            const ranked = Object.entries(perCluster[i])
+                .map(([w, tf]) => [w, tf * Math.log((N + 1) / (1 + (cf[w] || 0)))])
+                .sort((a, b) => b[1] - a[1]);
+            const picks = [];
+            for (const [w, score] of ranked) {
+                if (score <= 0) break;
+                if (!picks.length && usedPrimary.has(w)) continue; // avoid two collections sharing a headline term
+                picks.push(w);
+                if (picks.length === 2) break;
+            }
+            if (picks[0]) usedPrimary.add(picks[0]);
+            let name = picks.map(tc).join(' & ');
+            if (!name) name = (items[0].title || items[0].data?.[0]?.content || `Collection ${i + 1}`).slice(0, 24);
+            return { name, items };
+        });
+    }
+
+    async function buildCollections() {
+        if (collecting) return;
+        collecting = true;
+        reorganizeBtn.classList.add('hidden');
+        ovCollections.innerHTML = '<div class="ov-coll-loading"><span class="stash-dots3"><i></i><i></i><i></i></span>Organizing your memory...</div>';
+        try {
+            await ensureAI(true);
+            const groups = clusterItems(allStashs).filter((c) => c.length >= 2).sort((a, b) => b.length - a.length);
+            collections = nameClusters(groups).slice(0, 10);
+            renderCollections();
+        } catch (err) {
+            console.error('[stash] organize failed', err);
+            ovCollections.innerHTML = '<div class="ov-empty">Could not organize right now. Open the console and send me the error.</div>';
+        } finally {
+            collecting = false;
+        }
+    }
+
+    function renderCollections() {
+        if (allStashs.length < 6) {
+            reorganizeBtn.classList.add('hidden');
+            ovCollections.innerHTML = '<div class="ov-empty">Save a handful more and Stash sorts your memory into collections automatically.</div>';
+            return;
+        }
+        if (!proActive) {
+            reorganizeBtn.classList.add('hidden');
+            ovCollections.innerHTML = '<div class="ov-empty">Auto-organize groups your memory into themed collections, on your device. Turn on Pro (top right) to use it.</div>';
+            return;
+        }
+        if (!collections) {
+            reorganizeBtn.classList.add('hidden');
+            ovCollections.innerHTML = '<button id="ov-organize-btn" class="ov-coll-cta">Organize my memory into collections</button>';
+            const b = document.getElementById('ov-organize-btn');
+            if (b) b.addEventListener('click', buildCollections);
+            return;
+        }
+        if (!collections.length) {
+            reorganizeBtn.classList.remove('hidden');
+            ovCollections.innerHTML = '<div class="ov-empty">Your memories are varied so far. Save a few more on related topics and clear collections will form.</div>';
+            return;
+        }
+        reorganizeBtn.classList.remove('hidden');
+        ovCollections.innerHTML = collections.map((c, i) => {
+            const dots = c.items.slice(0, 5).map((it) => `<span class="nav-dot src-${sourceOf(it)}"></span>`).join('');
+            const sample = c.items.slice(0, 2).map((it) => escapeHtml((it.title || it.data?.[0]?.content || 'Untitled').slice(0, 38))).join('  ·  ');
+            return `<button class="ov-coll" data-i="${i}" style="animation-delay:${Math.min(i, 8) * 40}ms">
+                <div class="ov-coll-top"><span class="ov-coll-name">${escapeHtml(c.name)}</span><span class="ov-coll-n">${c.items.length}</span></div>
+                <div class="ov-coll-dots">${dots}</div>
+                <div class="ov-coll-sample">${sample}</div></button>`;
+        }).join('');
+        ovCollections.querySelectorAll('.ov-coll').forEach((b) => b.addEventListener('click', () => {
+            const c = collections[+b.dataset.i];
+            if (c) renderCollectionItems(c);
+        }));
+    }
+
+    function renderCollectionItems(coll) {
+        if (mode === 'ask') setMode('filter');
+        searchInput.value = '';
+        sidebarList.innerHTML = '';
+        visibleItems = [];
+        const group = document.createElement('div');
+        group.className = 'timeline-group';
+        group.innerHTML = `<div class="timeline-label">Collection &middot; ${escapeHtml(coll.name)}</div>`;
+        coll.items.forEach((item, idx) => {
+            visibleItems.push(item);
+            const raw = item.title || item.data[0]?.content || 'Untitled';
+            const title = raw.substring(0, 60) + (raw.length > 60 ? '...' : '');
+            const el = document.createElement('div');
+            el.className = 'nav-item';
+            el.style.animationDelay = `${Math.min(idx, 14) * 22}ms`;
+            el.innerHTML = `<div class="nav-item-row"><span class="nav-dot src-${sourceOf(item)}"></span><div class="nav-item-title">${escapeHtml(title)}</div></div><div class="nav-item-meta">${metaFor(item)}</div>`;
+            el.addEventListener('click', () => openItem(item));
+            group.appendChild(el);
+        });
+        sidebarList.appendChild(group);
+        if (coll.items[0]) openItem(coll.items[0]);
+    }
+
     function countSince(nDays) { const cut = Date.now() - nDays * 86400000; return allStashs.filter((it) => +new Date(it.timestamp) >= cut).length; }
     function currentStreak(perDay) {
         let streak = 0; const d = new Date(); d.setHours(0, 0, 0, 0);
@@ -224,7 +394,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (it) openItem(it);
             }));
         }
+
+        renderCollections();
     }
+
+    if (reorganizeBtn) reorganizeBtn.addEventListener('click', () => { collections = null; buildCollections(); });
 
     // GitHub-style contribution heatmap of saves per day over the last ~year.
     function renderHeatmap(perDay) {
@@ -506,6 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!confirm('Delete this from your stash?')) return;
         const key = currentActiveStash.id || currentActiveStash.timestamp;
         allStashs = allStashs.filter((r) => (r.id || r.timestamp) !== key);
+        collections = null; // memory changed: collections need rebuilding
         // keep the ask list and embedding index in sync so it does not reappear
         if (askResults) askResults = askResults.filter((r) => (r.item.id || r.item.timestamp) !== key);
         if (currentActiveStash.id && embIndex[currentActiveStash.id]) {
@@ -566,6 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     added++;
                 }
                 allStashs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                collections = null; // new memories: rebuild collections on next organize
                 chrome.storage.local.set({ stashs: allStashs }, () => {
                     refresh(); renderOverview();
                     alert(added ? `Imported ${added} item${added === 1 ? '' : 's'}${skipped ? `, skipped ${skipped} already present` : ''}.` : 'Nothing new to import. Everything in that file is already in your stash.');
