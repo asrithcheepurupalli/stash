@@ -411,8 +411,18 @@ body {
 }
 .suggest-chip:hover { border-style: solid; color: var(--text-primary); border-color: var(--text-primary); }
 
-/* interim Pro toggle in footer */
+/* Pro toggle + license activation in footer */
+.pro-toggle { width: 100%; }
 .pro-toggle.on { background: var(--text-primary); color: var(--bg); border-color: var(--text-primary); }
+.license-panel { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; animation: ov-coll-in 0.24s ease both; }
+.license-input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text-primary); font: 13px var(--font-sans); outline: none; transition: border-color 0.15s ease; }
+.license-input:focus { border-color: var(--text-primary); }
+.license-row { display: flex; gap: 8px; }
+.license-row .secondary-btn { flex: 1; }
+.secondary-btn.accent { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.secondary-btn.accent:hover { opacity: 0.92; color: var(--bg); }
+.secondary-btn.accent:disabled { opacity: 0.6; cursor: default; }
+.license-msg { font-size: 12px; line-height: 1.4; color: var(--danger); }
 
 /* import / export side by side */
 .footer-row { display: flex; gap: 8px; }

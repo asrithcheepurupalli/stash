@@ -41,6 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const genSummaryBtn = document.getElementById('gen-summary');
     const suggestedTags = document.getElementById('suggested-tags');
     const proToggle = document.getElementById('pro-toggle');
+    const licensePanel = document.getElementById('license-panel');
+    const licenseKey = document.getElementById('license-key');
+    const licenseActivate = document.getElementById('license-activate');
+    const licenseCancel = document.getElementById('license-cancel');
+    const licenseMsg = document.getElementById('license-msg');
 
     let allStashs = [];
     let currentActiveStash = null;
@@ -785,20 +790,63 @@ document.addEventListener('DOMContentLoaded', () => {
         aiStatus.classList.remove('hidden'); aiStatus.textContent = msg;
     }
 
+    const licensed = () => window.StashLicense && window.StashLicense.configured();
+
     function updateProUI() {
-        proToggle.textContent = proActive ? 'Pro: on' : 'Pro: off';
+        if (proActive) proToggle.textContent = 'Pro: active';
+        else proToggle.textContent = licensed() ? 'Activate Pro' : 'Pro: off';
         proToggle.classList.toggle('on', proActive);
         searchMode.querySelectorAll('.pro-tag').forEach((t) => t.classList.toggle('unlocked', proActive));
     }
 
-    // Interim Pro switch for testing until the Gumroad/Ed25519 gate lands.
-    proToggle.addEventListener('click', () => {
-        proActive = !proActive;
-        chrome.storage.local.set({ pro_active: proActive });
-        if (!proActive && mode === 'ask') setMode('filter');
+    function openLicense() {
+        licenseMsg.classList.add('hidden'); licenseMsg.textContent = '';
+        licensePanel.classList.remove('hidden');
+        licenseKey.value = '';
+        licenseKey.focus();
+    }
+    function closeLicense() { licensePanel.classList.add('hidden'); }
+
+    function setProActive(on) {
+        proActive = on;
+        if (!on && mode === 'ask') setMode('filter');
         updateProUI();
         if (currentActiveStash) renderChat(currentActiveStash);
+    }
+
+    proToggle.addEventListener('click', () => {
+        if (!licensed()) {
+            // No Gumroad product configured yet: keep the dev switch for testing.
+            chrome.storage.local.set({ pro_active: !proActive });
+            setProActive(!proActive);
+            return;
+        }
+        if (proActive) {
+            if (confirm('Remove your Pro license from this device? Your saved memory stays; the AI features turn off.')) {
+                window.StashLicense.clear().then(() => setProActive(false));
+            }
+        } else {
+            openLicense();
+        }
     });
+
+    if (licenseCancel) licenseCancel.addEventListener('click', closeLicense);
+    if (licenseActivate) licenseActivate.addEventListener('click', async () => {
+        const key = licenseKey.value;
+        licenseActivate.disabled = true; licenseActivate.textContent = 'Checking...';
+        licenseMsg.classList.add('hidden');
+        const res = await window.StashLicense.verify(key);
+        licenseActivate.disabled = false; licenseActivate.textContent = 'Activate';
+        if (res.ok) {
+            closeLicense();
+            setProActive(true);
+            setAiStatus(res.email ? `Pro active. Thanks${res.email ? `, ${res.email}` : ''}.` : 'Pro active. Welcome in.');
+        } else {
+            licenseMsg.textContent = res.error || 'Could not activate.';
+            licenseMsg.classList.remove('hidden');
+        }
+    });
+    if (licenseKey) licenseKey.addEventListener('keydown', (e) => { if (e.key === 'Enter') licenseActivate.click(); else if (e.key === 'Escape') closeLicense(); });
 
     function setMode(next) {
         mode = next;

@@ -19,6 +19,11 @@ function Wordmark({ name }: { name: string }) {
   );
 }
 
+// Set this to your Gumroad checkout link once the $39 Pro product exists, e.g.
+// 'https://made-by-ac.gumroad.com/l/stash'. Until then the Pro CTA reads
+// "Launching soon" so nothing dead-ends.
+const GUMROAD_URL = '';
+
 export default function App() {
   const [showGuide, setShowGuide] = useState(false);
   const [isBundling, setIsBundling] = useState(false);
@@ -269,15 +274,21 @@ export default function App() {
               <span className="inline-flex items-center gap-2"><Database size={15} className="text-red" /> One-time, no subscription</span>
             </div>
             <div className="flex items-center gap-4 flex-shrink-0">
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-line text-xs text-muted">
-                <span className="w-1.5 h-1.5 rounded-full bg-red inline-block" /> Launching soon
+              <span className="text-sm text-ink-2">
+                <span className="font-serif text-3xl text-ink font-medium align-middle">$39</span> <span className="align-middle">one-time</span>
               </span>
-              <button onClick={handleInstall} className="px-6 py-3 bg-ink text-paper rounded-full font-semibold text-sm inline-flex items-center gap-2 hover:opacity-90 transition-opacity">
-                <Download size={16} /> Get Stash free
-              </button>
+              {GUMROAD_URL ? (
+                <a href={GUMROAD_URL} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-ink text-paper rounded-full font-semibold text-sm inline-flex items-center gap-2 hover:opacity-90 transition-opacity">
+                  <Sparkles size={16} /> Get Stash Pro
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-line text-xs text-muted">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red inline-block" /> Launching soon
+                </span>
+              )}
             </div>
           </div>
-          <p className="text-xs text-muted mt-4">Install the free version today. Pro unlocks from inside the app when it lands, with a one-time price and no account.</p>
+          <p className="text-xs text-muted mt-4">Install the free extension, then activate Pro inside it with the license key from your purchase. One-time price, no account, nothing to cancel.</p>
         </div>
       </section>
 

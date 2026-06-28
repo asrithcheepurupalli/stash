@@ -32,6 +32,14 @@
             </nav>
             <div class="sidebar-footer">
                 <button id="pro-toggle" class="secondary-btn pro-toggle">Pro: off</button>
+                <div id="license-panel" class="license-panel hidden">
+                    <input type="text" id="license-key" class="license-input" placeholder="Paste your license key" autocomplete="off" spellcheck="false">
+                    <div class="license-row">
+                        <button id="license-activate" class="secondary-btn accent">Activate</button>
+                        <button id="license-cancel" class="secondary-btn">Cancel</button>
+                    </div>
+                    <div id="license-msg" class="license-msg hidden"></div>
+                </div>
                 <div class="footer-row">
                     <button id="import-all" class="secondary-btn">Import</button>
                     <button id="export-all" class="secondary-btn">Export All</button>
@@ -116,6 +124,7 @@
             </div>
         </main>
     </div>
+    <script src="license.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>
