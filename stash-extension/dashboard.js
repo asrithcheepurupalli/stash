@@ -124,28 +124,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ===================== Memory profile (overview) =====================
-    const OV_STOP = new Set('the a an and or but if then this that these those is are was were be been being to of in on for with as by at from into about over after before your you we they it he she him her them our their its can could would should will just like get got make made use used using one two also not no yes do does did how what when where why who which while because so than too very more most some any all each other out up down off here there with what your into how can will tell told idea ideas key here thing things lately good great need needs want wants look looking really actually going gonna lot lots sure okay ok well maybe something someone anything everything nothing let lets give given take takes work works working help helps way ways much many even still around across within without your you also more new first second next last best better example explain explained understand understood right left'.split(' '));
+    const OV_STOP = new Set(('the a an and or but if then this that these those is are was were be been being to of in on for with as by at from into about over after before your you we they it he she him her them our their its can could would should will just like get got make made use used using one two also not no yes do does did how what when where why who which while because so than too very more most some any all each other out up down off here there with what your into how can will tell told idea ideas key here thing things lately good great need needs want wants look looking really actually going gonna lot lots sure okay ok well maybe something someone anything everything nothing let lets give given take takes work works working help helps way ways much many even still around across within without your you also more new first second next last best better example explain explained understand understood right left'
+        // common filler verbs / adjectives / adverbs / quantifiers / time words that
+        // otherwise dominate by sheer frequency and make topics meaningless
+        + ' have has had having only through possible possibly feel feels felt feeling small smaller time times day days daily keep keeps kept keeping week weeks weekly perfect perfectly slightly slight think thinks thought thinking complete completely incomplete increase increased increases increasing decrease decreased reduce reduced reduces change changed changes changing set sets setting point points part parts kind kinds sort sorts type types case cases number numbers group groups level levels place placed places area areas side sides start started starts begin began stop stopped stops able allow allows almost already although always among amount another answer anyone anymore appear apply approach ask asked asking available away back bad become becomes becoming begin behind below beside bit both bring brought build built came care cause certain clear come comes coming common consider contain continue cover create created current currently decide deep depend describe detail determine different difficult directly done dont down due during early easy either else end ended ends enough especially even ever every everyone exactly far few find finds follow following force form four full general goes gone half handle happen happens hard held high hold however include includes including indeed inside instead involve issue issues itself large later least leave leaves less line lines little long longer low main matter mean means meant might mind minute moment month months move must near nearly need never nice none nor normally note now occur off offer often old once onto open order others otherwise outside overall own particular particularly past per perhaps plus probably problem problems process provide put quite rather real reason reasons receive recent recently regard related relatively remain require requires result results return run said same say says second see seem seems seen sees several shall short show shows side simple simply since single situation soon space special specific state states step steps such system take taken takes taking term terms third though three throughout thus today together took toward towards true try trying turn type under unless until upon useful usually value various want wanted wants week well went whatever whenever whether whole whom whose within without word words world yet able actual amount basically certainly clearly definitely easily entirely fairly fully generally largely mainly mostly nearly overall partly possibly previously primarily quickly rarely roughly simply slightly somewhat specifically typically usually virtually'
+        + ' guide guides tutorial tutorials overview intro introduction summary notes note tips basics review reviews question questions thread chat conversation page article post hold appeal'
+        ).split(/\s+/).filter(Boolean));
 
     function dayKey(d) { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; }
     function listify(a) { return a.length <= 1 ? (a[0] || '') : a.length === 2 ? `${a[0]} and ${a[1]}` : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`; }
 
-    // Topics = your tags (weighted) + frequent keywords across items (document
-    // frequency, so one long chat cannot dominate). This is the lite version of
-    // "auto-organize": it surfaces what your memory is actually about.
+    const cleanWord = (raw) => raw.replace(/^[.#+-]+/, '').replace(/[.#+-]+$/, '');
+
+    // Terms for ONE item as a Map term->weight. Titles and tags are topical and
+    // get heavy weight; body text is mostly filler so it only contributes lightly.
+    // Each term counts once per item (max weight wins) so a long chat cannot spam.
+    function itemTerms(it) {
+        const terms = new Map();
+        const bump = (w, by) => { if (w.length >= 4 && !OV_STOP.has(w)) terms.set(w, Math.max(terms.get(w) || 0, by)); };
+        (`${it.title || ''}`.toLowerCase().match(/[a-z][a-z0-9+#.-]{2,}/g) || []).forEach((raw) => bump(cleanWord(raw), 6));
+        (it.tags || []).forEach((t) => { const w = String(t).toLowerCase(); if (w.length >= 2 && !OV_STOP.has(w)) terms.set(w, Math.max(terms.get(w) || 0, 7)); });
+        const body = (it.data || []).map((m) => m.content).join(' ').toLowerCase();
+        (body.match(/[a-z][a-z0-9+#.-]{2,}/g) || []).forEach((raw) => bump(cleanWord(raw), 1));
+        return terms;
+    }
+
+    // Topics = distinctive terms across your memory. Score = accumulated weight x
+    // IDF (so words in almost every item, generic filler, sink); needs >= 2 items
+    // (recurring), and drops words present in most items when the archive is big.
     function topTopics(n) {
-        const counts = {};
-        const add = (w, by) => { counts[w] = (counts[w] || 0) + by; };
-        allStashs.forEach((it) => {
-            (it.tags || []).forEach((t) => add(String(t).toLowerCase(), 3));
-            const text = (`${it.title || ''} ${(it.data || []).map((m) => m.content).join(' ')}`).toLowerCase();
-            const seen = new Set();
-            (text.match(/[a-z][a-z0-9+#.-]{2,}/g) || []).forEach((raw) => {
-                const w = raw.replace(/^[.#+-]+/, '').replace(/[.#+-]+$/, '');
-                if (w.length < 4 || OV_STOP.has(w) || seen.has(w)) return;
-                seen.add(w); add(w, 1);
-            });
-        });
-        return Object.entries(counts).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, n).map(([label, count]) => ({ label, count }));
+        const score = {}, df = {}, strong = {};
+        allStashs.forEach((it) => itemTerms(it).forEach((w, term) => {
+            score[term] = (score[term] || 0) + w;
+            df[term] = (df[term] || 0) + 1;
+            if (w >= 6) strong[term] = true; // came from a title or tag
+        }));
+        const N = allStashs.length || 1;
+        return Object.entries(score)
+            // a title/tag word is topical even once; a body-only word must recur
+            .filter(([term]) => (strong[term] || df[term] >= 2) && (N < 8 || df[term] <= N * 0.6))
+            .map(([term, s]) => [term, s * Math.log((N + 1) / df[term])])
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, n)
+            .map(([label]) => ({ label, count: df[label] }));
     }
 
     // ===================== Auto-organize (collections) =====================
@@ -153,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // vector = mean of its chunk vectors; leader clustering + a merge pass groups
     // similar memories; each group is named by its most distinctive terms (TF x
     // inverse cluster frequency). All on-device, reusing the same index Ask uses.
-    const CLUSTER_T = 0.46;
+    const CLUSTER_T = 0.42;
 
     function meanVec(chunks) {
         if (!chunks || !chunks.length || !Array.isArray(chunks[0])) return null;
@@ -194,19 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return clusters.map((c) => c.pts.map((p) => p.it));
     }
 
+    // Title-weighted term tally for a cluster, so collection names come from the
+    // topical words in titles/tags, not filler buried in the conversation bodies.
     function termCounts(items) {
         const counts = {};
-        const add = (w, by) => { counts[w] = (counts[w] || 0) + by; };
-        items.forEach((it) => {
-            (it.tags || []).forEach((t) => add(String(t).toLowerCase(), 3));
-            const text = (`${it.title || ''} ${(it.data || []).map((m) => m.content).join(' ')}`).toLowerCase();
-            const seen = new Set();
-            (text.match(/[a-z][a-z0-9+#.-]{2,}/g) || []).forEach((raw) => {
-                const w = raw.replace(/^[.#+-]+/, '').replace(/[.#+-]+$/, '');
-                if (w.length < 4 || OV_STOP.has(w) || seen.has(w)) return;
-                seen.add(w); add(w, 1);
-            });
-        });
+        items.forEach((it) => itemTerms(it).forEach((w, term) => { counts[term] = (counts[term] || 0) + w; }));
         return counts;
     }
 
