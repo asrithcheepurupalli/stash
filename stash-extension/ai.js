@@ -45,62 +45,141 @@ export function cosine(a, b) {
   return d;
 }
 
-// Text we embed for an item: title carries the most signal, then the body.
+// Text we read over for an item (title first, it carries the most signal).
 export function itemText(item) {
   const body = (item.data || []).map((m) => m.content).join('\n');
   return `${item.title || ''}\n${body}`;
 }
 
-// Build / refresh the embedding index for items that lack a current vector.
-// Vectors live under storage key `embeddings` keyed by item id, fully local.
+// Break an item into chunks so retrieval can match the RIGHT part of a long
+// thread instead of a blurred average of the whole thing (the big quality win).
+function chunksFor(item) {
+  const out = [];
+  const pushPiece = (txt) => {
+    const t = String(txt || '').replace(/\s+/g, ' ').trim();
+    if (!t) return;
+    if (t.length <= 520) { out.push(t); return; }
+    const sents = t.split(/(?<=[.!?])\s+/);
+    let buf = '';
+    for (const s of sents) {
+      if ((buf + ' ' + s).length > 480) { if (buf) out.push(buf.trim()); buf = s; }
+      else buf = buf ? buf + ' ' + s : s;
+    }
+    if (buf) out.push(buf.trim());
+  };
+  if (item.title) out.push(String(item.title).trim());
+  (item.data || []).forEach((m) => pushPiece(m.content));
+  return out.slice(0, 12); // bound work on huge items
+}
+
+// Per-item chunk vectors, cached under storage key `embeddings`.
+// Stored shape per id: array of vectors. Old single-vector entries (number[])
+// are detected and rebuilt.
+function isChunked(v) { return Array.isArray(v) && Array.isArray(v[0]); }
+
 export async function buildIndex(items, existing, onProgress) {
   const index = { ...(existing || {}) };
-  const missing = items.filter((it) => it.id && !index[it.id]);
+  const missing = items.filter((it) => it.id && !isChunked(index[it.id]));
   for (let i = 0; i < missing.length; i++) {
     const it = missing[i];
-    index[it.id] = await embed(itemText(it));
+    const vecs = [];
+    for (const c of chunksFor(it)) vecs.push(await embed(c));
+    index[it.id] = vecs.length ? vecs : [await embed(itemText(it))];
     if (onProgress) onProgress(i + 1, missing.length);
   }
   return { index, added: missing.length };
 }
 
+const tokenize = (s) => (String(s || '').toLowerCase().match(/[a-z0-9]{3,}/g) || []);
+
 export async function search(query, items, index, topK = 20) {
   const q = await embed(query);
-  return items
-    .filter((it) => it.id && index[it.id])
-    .map((it) => ({ item: it, score: cosine(q, index[it.id]) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
+  const qTerms = [...new Set(tokenize(query))];
+  const scored = items
+    .filter((it) => it.id && isChunked(index[it.id]))
+    .map((it) => {
+      let best = -1; // semantic: best-matching chunk (max-pool), not the average
+      for (const v of index[it.id]) { const s = cosine(q, v); if (s > best) best = s; }
+      let lex = 0; // light lexical boost so exact terms (names, code) are not missed
+      if (qTerms.length) {
+        const hay = itemText(it).toLowerCase();
+        lex = qTerms.filter((t) => hay.includes(t)).length / qTerms.length;
+      }
+      return { item: it, score: best + 0.12 * lex, sem: best };
+    })
+    .sort((a, b) => b.score - a.score);
+  if (!scored.length) return [];
+  const top = scored[0].score; // drop weak matches so "best matches" are actually good
+  return scored.filter((r) => r.sem >= 0.18 && r.score >= top * 0.55).slice(0, topK);
 }
 
-// ---- extractive summary (embedding-centrality) -------------------------------
+// ---- extractive summary (TextRank over sentence embeddings) ------------------
 function splitSentences(text) {
   return String(text || '')
     .replace(/\s+/g, ' ')
-    .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 25);
+    .filter((s) => s.length > 25 && s.length < 400);
 }
 
-export async function summarize(item) {
-  const text = (item.data || []).map((m) => m.content).join(' ');
-  let sentences = splitSentences(text);
-  if (sentences.length <= 2) return clip(text, 320);
-  sentences = sentences.slice(0, 40); // cap work on long threads
+async function embedAll(sentences) {
   const ex = await getExtractor();
   const vecs = [];
   for (const s of sentences) {
-    const out = await ex(clip(s, 1000), { pooling: 'mean', normalize: true });
+    const out = await ex(clip(s, 600), { pooling: 'mean', normalize: true });
     vecs.push(Array.from(out.data));
   }
-  const centroid = new Array(vecs[0].length).fill(0);
-  vecs.forEach((v) => v.forEach((x, i) => { centroid[i] += x / vecs.length; }));
-  const ranked = sentences
-    .map((s, i) => ({ s, i, score: cosine(vecs[i], centroid) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, Math.min(3, Math.ceil(sentences.length * 0.25)))
-    .sort((a, b) => a.i - b.i); // restore reading order
-  return ranked.map((r) => r.s).join(' ').slice(0, 600);
+  return vecs;
+}
+
+// TextRank-lite: a sentence scores by how similar it is to all the others, so
+// genuinely representative sentences win (better than "closest to the average").
+function rankSentences(sentences, vecs, k) {
+  const n = sentences.length;
+  const score = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i === j) continue;
+      const sim = cosine(vecs[i], vecs[j]);
+      if (sim > 0.2) score[i] += sim;
+    }
+  }
+  const order = sentences.map((s, i) => i).sort((a, b) => score[b] - score[a]);
+  const picked = [];
+  for (const i of order) {
+    if (picked.length >= k) break;
+    if (picked.some((p) => cosine(vecs[i], vecs[p]) > 0.85)) continue; // skip near-dupes
+    picked.push(i);
+  }
+  return picked.sort((a, b) => a - b); // reading order
+}
+
+export async function summarize(item) {
+  const page = (item.type || 'chat') === 'page';
+  // Chats: lead with the user's intent (the question), then the key answer
+  // sentences. Pages: rank the page's own sentences.
+  let lead = '';
+  let bodyText;
+  if (!page) {
+    const firstUser = (item.data || []).find((m) => m.role === 'user');
+    if (firstUser) lead = splitSentences(firstUser.content)[0] || clip(firstUser.content, 160);
+    const answers = (item.data || []).filter((m) => m.role !== 'user').map((m) => m.content).join(' ');
+    bodyText = answers || (item.data || []).map((m) => m.content).join(' ');
+  } else {
+    bodyText = (item.data || []).map((m) => m.content).join(' ');
+  }
+  let sentences = splitSentences(bodyText).slice(0, 40);
+  if (sentences.length <= 2) {
+    const fb = clip(bodyText, 360);
+    return lead && !fb.startsWith(lead) ? `${lead} ${fb}`.slice(0, 600) : fb;
+  }
+  const vecs = await embedAll(sentences);
+  const k = Math.min(3, Math.max(2, Math.round(sentences.length * 0.2)));
+  const picked = rankSentences(sentences, vecs, k).map((i) => sentences[i]);
+  const parts = [];
+  if (lead) parts.push(lead.replace(/\s+/g, ' ').trim());
+  picked.forEach((s) => { if (!parts.includes(s)) parts.push(s); });
+  return parts.join(' ').slice(0, 600);
 }
 
 // ---- keyword tag suggestions (no model needed) -------------------------------

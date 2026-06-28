@@ -15274,7 +15274,7 @@ Callable {
       documents = null,
       chat_template = null,
       add_generation_prompt = false,
-      tokenize: tokenize2 = (
+      tokenize: tokenize22 = (
         /** @type {TTokenize} */
         true
       ),
@@ -15316,7 +15316,7 @@ Callable {
       ...special_tokens_map,
       ...kwargs
     });
-    if (tokenize2) {
+    if (tokenize22) {
       const out = this._call(rendered, {
         add_special_tokens: false,
         padding,
@@ -33027,40 +33027,122 @@ function itemText(item) {
   return `${item.title || ""}
 ${body}`;
 }
+function chunksFor(item) {
+  const out = [];
+  const pushPiece = (txt) => {
+    const t = String(txt || "").replace(/\s+/g, " ").trim();
+    if (!t) return;
+    if (t.length <= 520) {
+      out.push(t);
+      return;
+    }
+    const sents = t.split(/(?<=[.!?])\s+/);
+    let buf = "";
+    for (const s of sents) {
+      if ((buf + " " + s).length > 480) {
+        if (buf) out.push(buf.trim());
+        buf = s;
+      } else buf = buf ? buf + " " + s : s;
+    }
+    if (buf) out.push(buf.trim());
+  };
+  if (item.title) out.push(String(item.title).trim());
+  (item.data || []).forEach((m) => pushPiece(m.content));
+  return out.slice(0, 12);
+}
+function isChunked(v) {
+  return Array.isArray(v) && Array.isArray(v[0]);
+}
 async function buildIndex(items, existing, onProgress) {
   const index = { ...existing || {} };
-  const missing = items.filter((it2) => it2.id && !index[it2.id]);
+  const missing = items.filter((it2) => it2.id && !isChunked(index[it2.id]));
   for (let i = 0; i < missing.length; i++) {
     const it2 = missing[i];
-    index[it2.id] = await embed(itemText(it2));
+    const vecs = [];
+    for (const c of chunksFor(it2)) vecs.push(await embed(c));
+    index[it2.id] = vecs.length ? vecs : [await embed(itemText(it2))];
     if (onProgress) onProgress(i + 1, missing.length);
   }
   return { index, added: missing.length };
 }
+var tokenize2 = (s) => String(s || "").toLowerCase().match(/[a-z0-9]{3,}/g) || [];
 async function search(query, items, index, topK = 20) {
   const q = await embed(query);
-  return items.filter((it2) => it2.id && index[it2.id]).map((it2) => ({ item: it2, score: cosine(q, index[it2.id]) })).sort((a, b) => b.score - a.score).slice(0, topK);
+  const qTerms = [...new Set(tokenize2(query))];
+  const scored = items.filter((it2) => it2.id && isChunked(index[it2.id])).map((it2) => {
+    let best = -1;
+    for (const v of index[it2.id]) {
+      const s = cosine(q, v);
+      if (s > best) best = s;
+    }
+    let lex = 0;
+    if (qTerms.length) {
+      const hay = itemText(it2).toLowerCase();
+      lex = qTerms.filter((t) => hay.includes(t)).length / qTerms.length;
+    }
+    return { item: it2, score: best + 0.12 * lex, sem: best };
+  }).sort((a, b) => b.score - a.score);
+  if (!scored.length) return [];
+  const top = scored[0].score;
+  return scored.filter((r) => r.sem >= 0.18 && r.score >= top * 0.55).slice(0, topK);
 }
 function splitSentences(text) {
-  return String(text || "").replace(/\s+/g, " ").split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map((s) => s.trim()).filter((s) => s.length > 25);
+  return String(text || "").replace(/\s+/g, " ").split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/).map((s) => s.trim()).filter((s) => s.length > 25 && s.length < 400);
 }
-async function summarize(item) {
-  const text = (item.data || []).map((m) => m.content).join(" ");
-  let sentences = splitSentences(text);
-  if (sentences.length <= 2) return clip(text, 320);
-  sentences = sentences.slice(0, 40);
+async function embedAll(sentences) {
   const ex = await getExtractor();
   const vecs = [];
   for (const s of sentences) {
-    const out = await ex(clip(s, 1e3), { pooling: "mean", normalize: true });
+    const out = await ex(clip(s, 600), { pooling: "mean", normalize: true });
     vecs.push(Array.from(out.data));
   }
-  const centroid = new Array(vecs[0].length).fill(0);
-  vecs.forEach((v) => v.forEach((x, i) => {
-    centroid[i] += x / vecs.length;
-  }));
-  const ranked = sentences.map((s, i) => ({ s, i, score: cosine(vecs[i], centroid) })).sort((a, b) => b.score - a.score).slice(0, Math.min(3, Math.ceil(sentences.length * 0.25))).sort((a, b) => a.i - b.i);
-  return ranked.map((r) => r.s).join(" ").slice(0, 600);
+  return vecs;
+}
+function rankSentences(sentences, vecs, k2) {
+  const n = sentences.length;
+  const score = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i === j) continue;
+      const sim = cosine(vecs[i], vecs[j]);
+      if (sim > 0.2) score[i] += sim;
+    }
+  }
+  const order = sentences.map((s, i) => i).sort((a, b) => score[b] - score[a]);
+  const picked = [];
+  for (const i of order) {
+    if (picked.length >= k2) break;
+    if (picked.some((p) => cosine(vecs[i], vecs[p]) > 0.85)) continue;
+    picked.push(i);
+  }
+  return picked.sort((a, b) => a - b);
+}
+async function summarize(item) {
+  const page = (item.type || "chat") === "page";
+  let lead = "";
+  let bodyText;
+  if (!page) {
+    const firstUser = (item.data || []).find((m) => m.role === "user");
+    if (firstUser) lead = splitSentences(firstUser.content)[0] || clip(firstUser.content, 160);
+    const answers = (item.data || []).filter((m) => m.role !== "user").map((m) => m.content).join(" ");
+    bodyText = answers || (item.data || []).map((m) => m.content).join(" ");
+  } else {
+    bodyText = (item.data || []).map((m) => m.content).join(" ");
+  }
+  let sentences = splitSentences(bodyText).slice(0, 40);
+  if (sentences.length <= 2) {
+    const fb = clip(bodyText, 360);
+    return lead && !fb.startsWith(lead) ? `${lead} ${fb}`.slice(0, 600) : fb;
+  }
+  const vecs = await embedAll(sentences);
+  const k2 = Math.min(3, Math.max(2, Math.round(sentences.length * 0.2)));
+  const picked = rankSentences(sentences, vecs, k2).map((i) => sentences[i]);
+  const parts = [];
+  if (lead) parts.push(lead.replace(/\s+/g, " ").trim());
+  picked.forEach((s) => {
+    if (!parts.includes(s)) parts.push(s);
+  });
+  return parts.join(" ").slice(0, 600);
 }
 var STOP = new Set("the a an and or but if then this that these those is are was were be been being to of in on for with as by at from into about over after before your you we they it he she him her them our their its can could would should will just like get got make made use used using one two also not no yes do does did how what when where why who which while because so than too very more most some any all each other out up down off here there".split(" "));
 function suggestTags(item, max2 = 4) {
