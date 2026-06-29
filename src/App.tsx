@@ -41,7 +41,7 @@ const GUMROAD_URL = 'https://madebyac.gumroad.com/l/stashpro';
 // Chrome Web Store listing. Empty while the extension is in review; the moment
 // this has a value, every install button points to the store (one-click add)
 // instead of the manual zip download. Flip this single line when it goes live.
-const CHROME_STORE_URL = '';
+const CHROME_STORE_URL = 'https://chromewebstore.google.com/detail/mppjogomhpmhfocknjgokeimbmolhkif';
 
 export default function App() {
   const [showGuide, setShowGuide] = useState(false);

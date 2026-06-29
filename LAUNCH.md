@@ -5,8 +5,8 @@
 > compatibility (the extension works on them).
 >
 > Placeholders to fill at launch:
-> - {STORE} = the Chrome Web Store URL (https://chromewebstore.google.com/detail/...)
-> - {SITE}  = https://stash.made-by-ac.com
+> - https://chromewebstore.google.com/detail/mppjogomhpmhfocknjgokeimbmolhkif = the Chrome Web Store URL (https://chromewebstore.google.com/detail/...)
+> - https://stash.made-by-ac.com  = https://stash.made-by-ac.com
 >
 > Assets to attach: the 5 store screenshots (marketing/store/01..05), og.png for link
 > previews, and the marquee tile for banners.
@@ -29,7 +29,7 @@ Stash keeps all of it. Every ChatGPT, Claude and Gemini conversation, and the pa
 
 No account. No cloud. Nothing phones home.
 
-{STORE}
+https://chromewebstore.google.com/detail/mppjogomhpmhfocknjgokeimbmolhkif
 
 **Thread (optional follow-ups)**
 
@@ -41,7 +41,7 @@ No account. No cloud. Nothing phones home.
 
 5/ Why local-first? A memory cannot leak if it never leaves. Stash makes no network calls of its own. Your record of your own thinking stays yours.
 
-Free to use: {STORE}
+Free to use: https://chromewebstore.google.com/detail/mppjogomhpmhfocknjgokeimbmolhkif
 
 ---
 
@@ -59,7 +59,7 @@ Stash is free. Pro is a one time $39, no subscription, nothing to cancel.
 
 It is the sibling to Airlock, our privacy firewall for AI. Airlock guards what you send. Stash keeps what you get back. Neither one ever phones home.
 
-{STORE}
+https://chromewebstore.google.com/detail/mppjogomhpmhfocknjgokeimbmolhkif
 
 ---
 
@@ -77,7 +77,7 @@ How it works: a small pill sits on your AI chats. One click saves the thread. On
 
 It is free. There is an optional Pro ($39 once, no subscription) that bundles a small AI model into the extension, still fully on-device, so you can ask a question and get an answer assembled from across everything you saved, with citations.
 
-Happy to answer anything about how the on-device search works or the privacy model. {STORE}
+Happy to answer anything about how the on-device search works or the privacy model. https://chromewebstore.google.com/detail/mppjogomhpmhfocknjgokeimbmolhkif
 
 ---
 
@@ -117,7 +117,7 @@ It is the sibling to Airlock, our privacy firewall for AI. Happy to answer anyth
 
 ## Short blurb (email / newsletter / made. audience)
 
-Stash is out. It keeps every AI chat and the pages you read in one private memory that lives only on your device. No account, no cloud, nothing phones home. Free to use, with an optional one time Pro. {STORE}
+Stash is out. It keeps every AI chat and the pages you read in one private memory that lives only on your device. No account, no cloud, nothing phones home. Free to use, with an optional one time Pro. https://chromewebstore.google.com/detail/mppjogomhpmhfocknjgokeimbmolhkif
 
 ---
 
