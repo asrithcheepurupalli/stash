@@ -83,17 +83,39 @@ Happy to answer anything about how the on-device search works or the privacy mod
 
 ## Hacker News (Show HN)
 
-**Title:** Show HN: Stash, a local-first memory for your AI chats (no servers, on-device)
+**Title (primary):** Show HN: Stash, a local-first memory for your AI chats (on-device, no servers)
 
-**Body:**
+Alternates:
+- Show HN: On-device memory for your AI chats and the pages you read
+- Show HN: A Chrome extension that saves your AI chats on-device, no cloud
 
-Stash is a Chrome extension that saves your AI conversations (ChatGPT, Claude, Gemini) and the web pages you read into one searchable archive stored entirely in the browser. It makes no network calls of its own.
+**URL field:** https://stash.made-by-ac.com
 
-The part we cared about is that search and the Pro features run on-device. Pro bundles a quantized MiniLM embedding model and the ONNX runtime into the extension itself, loaded from the package with remote models disabled, so semantic search and the "ask across everything" answers happen locally with nothing leaving the machine. Answers are extractive (TextRank plus MMR over the embeddings), each line cited back to its source, so nothing is invented.
+**First comment (post within a minute of submitting):**
 
-Stash is free. Pro is a one time $39. A license check is the only time it ever touches the network, and only if you choose to buy.
+Hi HN. We are a small studio, and we built Stash to fix our own problem: our best thinking kept happening inside AI chats and then scrolling away, and every "memory" option wanted to sync it all to someone's cloud. We did not want that.
 
-It is a sibling to Airlock, our on-device PII redactor. Happy to go into the MV3 offscreen-document setup, the embedding pipeline, or the local-first tradeoffs.
+Stash is a Chrome extension that saves your conversations (ChatGPT, Claude, Gemini) and the web pages you read into one searchable archive. The whole thing lives in the browser and makes no network calls of its own, so you can open the network tab and watch it stay quiet.
+
+Under the hood:
+
+- Saving reads the conversation straight from the page DOM (per-site extractors) and stores it with chrome.storage.local, with unlimitedStorage so long threads and full pages fit.
+- Search and the Pro features run on-device. We bundle a quantized all-MiniLM-L6-v2 embedding model and the ONNX runtime into the package itself, loaded via chrome.runtime.getURL with remote models disabled, and run inference in an MV3 offscreen document so it does not block the page. No server in the loop.
+- "Ask across everything" is extractive, not generative: we embed the query, pull the best passages across your saved items, and assemble the answer with TextRank plus MMR, every line cited back to its source. Nothing is invented, which felt like the honest default for a memory tool.
+
+The only time it touches the network is an optional license check, and only if you choose to buy Pro. Stash itself is free; Pro is a one-time $39, no subscription.
+
+Things we are genuinely unsure about and would like input on: whether the offscreen document is the right long-term home for the model, how far a small on-device model can be pushed for retrieval before it stops feeling worth it, and which sites beyond the three are worth writing extractors for. Happy to go deep on any of it.
+
+**Be ready for these (fast, honest replies make or break the thread):**
+
+- *Open source?* Not yet. But the privacy claim does not require trust: no network calls (verify in the network tab), and the model + runtime ship inside the package. We have considered open-sourcing the extractors at least.
+- *Why paid / why $39?* Save, search and resume are free forever. Pro is the on-device model features (ask-across-everything, auto-collections). One-time because we dislike subscriptions for a tool that runs entirely on your machine with no server cost to us.
+- *Why not the AI's built-in memory or export?* Built-in memory is per-tool and lives on their servers; you cannot search across tools or across the pages you read. Stash is cross-tool, local, and yours to export.
+- *Is a model that small any good?* Retrieval over your own corpus is a far easier task than open-domain. For "find the thing I already saw" it is plenty. Would love stress tests.
+- *What happens on uninstall?* Data lives in browser storage, so uninstall clears it. Export to a file any time, re-import to restore.
+- *Firefox / Safari?* Chromium first (MV3). Firefox is feasible and on the list if there is demand.
+- *Robust to site DOM changes?* Per-site extractors that we validate and fix when sites change (we updated Claude's selector recently, for example).
 
 ---
 
