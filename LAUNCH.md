@@ -121,19 +121,40 @@ Things we are genuinely unsure about and would like input on: whether the offscr
 
 ## Product Hunt
 
-**Tagline (60 char max):** A private memory for everything you do with AI
+**Name:** Stash
 
-**Description:**
-Stash saves your AI conversations and the pages you read into one searchable memory that lives only on your machine. No account, no cloud, nothing phones home. Pro adds a small on-device AI so you can ask across everything you have kept, with citations.
+**Tagline (60 char max), primary:** A private memory for everything you do with AI
+Alternates:
+- On-device memory for your AI chats and the pages you read
+- Your AI chats and reading, kept on your own device
 
-**First maker comment:**
+**Description (260 char max):**
+Stash saves your AI conversations and the pages you read into one searchable memory that lives only on your machine. No account, no cloud, nothing phones home. Pro adds a small on-device AI to ask across everything you saved, with citations.
+
+**Links:** Website https://stash.made-by-ac.com · Chrome Web Store https://chromewebstore.google.com/detail/mppjogomhpmhfocknjgokeimbmolhkif
+
+**Topics:** Productivity, Chrome Extensions, Artificial Intelligence, Privacy
+
+**Pricing:** Freemium (free, with a one-time $39 Pro)
+
+**Thumbnail:** marketing/store/ph-thumbnail-512.png
+
+**Gallery order:** 01-dashboard, 02-pill, 03-ask, 04-collections, 05-private (the 1280x800 store shots; PH recommends 1270x760, close enough). Optional banner: promo-marquee-1400x560.
+
+**First maker comment (post the moment it goes live):**
 Hi Product Hunt. We are the small studio behind Stash.
 
 We built it because our best thinking kept disappearing into AI chat windows, and the existing answer was always "sync it to our cloud." We did not want that. So Stash keeps everything on your device and makes no network calls of its own. A memory cannot leak if it never leaves.
 
-A pill on your AI chats saves a thread in one click and pulls a past one back into your prompt as context. Pro runs a small AI model on your machine so you can ask a question and get an answer drawn from across everything you saved, each line cited. It is free to use, with a one time Pro.
+A pill on your AI chats saves a thread in one click and pulls a past one back into your prompt as context. Pro runs a small AI model on your machine so you can ask a question and get an answer drawn from across everything you saved, each line cited. It is free to use, with a one-time Pro.
 
 It is the sibling to Airlock, our privacy firewall for AI. Happy to answer anything.
+
+**Launch mechanics:**
+1. Create as a draft, then schedule for 12:01am PT on a Tue, Wed or Thu (full leaderboard day).
+2. Add it to your "Upcoming" page a few days early so people can hit "notify me."
+3. Add yourself as a maker. Set pricing to Freemium.
+4. Day-of: be in the comments all day. You may share the link and invite people to check it out and give feedback. Do NOT say "please upvote" (PH penalizes vote solicitation); "we just launched, would love your thoughts" is fine.
 
 ---
 
