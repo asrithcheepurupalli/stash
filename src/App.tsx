@@ -403,7 +403,7 @@ export default function App() {
               lives only on your device. A <Wordmark name="made" className="text-ink-2" /> local-first tool.
             </p>
           </div>
-          <div className="flex gap-16">
+          <div className="flex flex-wrap gap-x-16 gap-y-10">
             <div>
               <h5 className="text-xs uppercase tracking-widest text-muted mb-4">Product</h5>
               <ul className="space-y-3 text-sm text-ink-2">
@@ -411,6 +411,15 @@ export default function App() {
                 <li><button onClick={() => scrollTo("pro")} className="hover:text-ink">Pro</button></li>
                 <li><button onClick={() => scrollTo("privacy")} className="hover:text-ink">Privacy</button></li>
                 <li><button onClick={() => scrollTo("how")} className="hover:text-ink">How it works</button></li>
+              </ul>
+            </div>
+            <div>
+              <h5 className="text-xs uppercase tracking-widest text-muted mb-4">Guides</h5>
+              <ul className="space-y-3 text-sm text-ink-2">
+                <li><a href="/guides/search-old-chatgpt-conversations.html" className="hover:text-ink">Search old chats</a></li>
+                <li><a href="/guides/save-ai-chats-claude-chatgpt-gemini.html" className="hover:text-ink">Save your AI chats</a></li>
+                <li><a href="/guides/ai-memory-on-your-device-vs-in-the-cloud.html" className="hover:text-ink">Local vs cloud memory</a></li>
+                <li><a href="/guides/continue-an-ai-chat-in-a-new-thread.html" className="hover:text-ink">Continue in a new thread</a></li>
               </ul>
             </div>
             <div>
