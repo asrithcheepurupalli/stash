@@ -135,6 +135,7 @@ export default function App() {
           <button onClick={() => scrollTo("pro")} className="hover:text-ink transition-colors">Pro</button>
           <button onClick={() => scrollTo("privacy")} className="hover:text-ink transition-colors">Privacy</button>
           <button onClick={() => scrollTo("how")} className="hover:text-ink transition-colors">How it works</button>
+          <a href="/guides/" className="hover:text-ink transition-colors">Guides</a>
           <button onClick={handleInstall} className="px-5 py-2 bg-ink text-paper rounded-full font-medium hover:opacity-90 transition-opacity">
             Get Stash
           </button>
@@ -414,7 +415,7 @@ export default function App() {
               </ul>
             </div>
             <div>
-              <h5 className="text-xs uppercase tracking-widest text-muted mb-4">Guides</h5>
+              <h5 className="text-xs uppercase tracking-widest text-muted mb-4"><a href="/guides/" className="hover:text-ink">Guides</a></h5>
               <ul className="space-y-3 text-sm text-ink-2">
                 <li><a href="/guides/search-old-chatgpt-conversations.html" className="hover:text-ink">Search old chats</a></li>
                 <li><a href="/guides/save-ai-chats-claude-chatgpt-gemini.html" className="hover:text-ink">Save your AI chats</a></li>
