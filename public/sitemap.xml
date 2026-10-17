@@ -3,4 +3,8 @@
   <url><loc>https://stash.made-by-ac.com/</loc><priority>1.0</priority></url>
   <url><loc>https://stash.made-by-ac.com/support.html</loc><priority>0.5</priority></url>
   <url><loc>https://stash.made-by-ac.com/privacy.html</loc><priority>0.3</priority></url>
+  <url><loc>https://stash.made-by-ac.com/guides/search-old-chatgpt-conversations.html</loc><priority>0.7</priority></url>
+  <url><loc>https://stash.made-by-ac.com/guides/save-ai-chats-claude-chatgpt-gemini.html</loc><priority>0.7</priority></url>
+  <url><loc>https://stash.made-by-ac.com/guides/ai-memory-on-your-device-vs-in-the-cloud.html</loc><priority>0.7</priority></url>
+  <url><loc>https://stash.made-by-ac.com/guides/continue-an-ai-chat-in-a-new-thread.html</loc><priority>0.7</priority></url>
 </urlset>
